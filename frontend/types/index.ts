@@ -1342,6 +1342,190 @@ export interface GitHubWorkflowRunModel {
   jobs_summary?: string | null;
 }
 
+// Prompt Reliability Lab Models (Slice 7.7)
+export interface StructuredPromptComponentsModel {
+  role?: string;
+  objective?: string;
+  context?: string;
+  instructions?: string[];
+  constraints?: string[];
+  examples?: Record<string, any>[];
+  failure_handling?: string;
+  tool_rules?: string[];
+  validation_rules?: string[];
+}
+
+export interface PromptDefinitionModel {
+  prompt_id: string;
+  name: string;
+  description: string;
+  created_at: string;
+}
+
+export interface PromptVersionModel {
+  prompt_id: string;
+  version: number;
+  template: string;
+  variables_schema: Record<string, any>;
+  output_schema?: Record<string, any> | null;
+  components?: StructuredPromptComponentsModel | null;
+  parent_version?: number | null;
+  change_reason?: string | null;
+  status: 'DRAFT' | 'CANDIDATE' | 'EVALUATING' | 'PASSED' | 'DEPLOYED' | 'REJECTED' | 'ROLLED_BACK';
+  is_evaluated: boolean;
+  created_at: string;
+}
+
+export interface EvaluationCaseModel {
+  case_id: string;
+  input: Record<string, any>;
+  expected_behavior: string;
+  expected_output?: string | Record<string, any> | null;
+  constraints: string[];
+  sources: Record<string, any>[];
+  tools: string[];
+  evaluation_strategy: 'EXACT_MATCH' | 'JSON_SCHEMA' | 'RULE_BASED' | 'CODE_EXECUTION' | 'SQL_EXECUTION' | 'GROUNDING' | 'SEMANTIC_JUDGE' | 'LLM_AS_JUDGE' | 'HUMAN_REVIEW' | 'COMPOSITE';
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  tags: string[];
+  category: 'NORMAL' | 'AMBIGUOUS' | 'MISSING_INPUT' | 'CONTRADICTORY' | 'LONG_CONTEXT' | 'INJECTION' | 'MALFORMED' | 'OUT_OF_DISTRIBUTION' | 'BOUNDARY' | 'CONFLICTING_EXAMPLES' | 'REGRESSION';
+}
+
+export interface EvaluationSuiteModel {
+  suite_id: string;
+  name: string;
+  description: string;
+  created_at: string;
+}
+
+export interface EvaluationSuiteVersionModel {
+  suite_id: string;
+  version: number;
+  description: string;
+  cases: EvaluationCaseModel[];
+  is_frozen: boolean;
+  created_at: string;
+}
+
+export interface EvaluatorResultModel {
+  evaluator_name: string;
+  strategy: string;
+  status: 'PASS' | 'FAIL' | 'PARTIAL' | 'UNKNOWN' | 'ABSTAINED' | 'NOT_APPLICABLE';
+  score?: number | null;
+  confidence?: number | null;
+  rationale: string;
+  evidence: Record<string, any>[];
+  metadata: Record<string, any>;
+}
+
+export interface CaseEvaluationResultModel {
+  case_id: string;
+  category: string;
+  severity: string;
+  overall_status: 'PASS' | 'FAIL' | 'PARTIAL' | 'UNKNOWN' | 'ABSTAINED' | 'NOT_APPLICABLE';
+  evaluator_results: EvaluatorResultModel[];
+  failure_causes: string[];
+  evidence_ids: string[];
+  confidence?: number | null;
+  timestamp: string;
+}
+
+export interface DiagnosticFactModel {
+  epistemic_type: 'OBSERVED' | 'INFERRED' | 'HYPOTHESIS';
+  statement: string;
+  evidence_refs: string[];
+}
+
+export interface PromptDiagnosisModel {
+  diagnosis_id: string;
+  evaluation_run_id: string;
+  case_id: string;
+  primary_cause: string;
+  confidence: number;
+  facts: DiagnosticFactModel[];
+  observed_summary: string;
+  inferred_summary: string;
+  hypothesis_summary: string;
+  created_at: string;
+}
+
+export interface EvaluationRunModel {
+  evaluation_run_id: string;
+  prompt_id: string;
+  prompt_version: number;
+  suite_id: string;
+  suite_version: number;
+  model: string;
+  generation_parameters: Record<string, any>;
+  status: string;
+  total_cases: number;
+  passed_cases: number;
+  failed_cases: number;
+  partial_cases: number;
+  unknown_cases: number;
+  abstained_cases: number;
+  pass_rate: number;
+  case_results: CaseEvaluationResultModel[];
+  diagnoses: PromptDiagnosisModel[];
+  started_at: string;
+  completed_at?: string | null;
+  duration_ms: number;
+}
+
+export interface CaseTransitionRecordModel {
+  case_id: string;
+  category: string;
+  severity: string;
+  status_v1: string;
+  status_v2: string;
+  transition: 'NEW_PASS' | 'NEW_FAILURE' | 'REGRESSION' | 'FIXED_FAILURE' | 'UNCHANGED';
+  rationale_diff: string;
+}
+
+export interface PromptComparisonResultModel {
+  prompt_id: string;
+  v1_version: number;
+  v2_version: number;
+  suite_id: string;
+  suite_version: number;
+  v1_run_id: string;
+  v2_run_id: string;
+  v1_pass_rate: number;
+  v2_pass_rate: number;
+  pass_rate_delta: number;
+  total_cases: number;
+  regressions_count: number;
+  fixed_failures_count: number;
+  unchanged_count: number;
+  new_passes_count: number;
+  new_failures_count: number;
+  critical_regressions: CaseTransitionRecordModel[];
+  transitions: CaseTransitionRecordModel[];
+  deterministic_pass_rates: Record<string, number>;
+  grounding_pass_rates: Record<string, number>;
+  semantic_pass_rates: Record<string, number>;
+}
+
+export interface EvaluationSnapshotModel {
+  snapshot_id: string;
+  protocol_version: string;
+  prompt_id: string;
+  prompt_version: number;
+  suite_id: string;
+  suite_version: number;
+  model: string;
+  model_parameters: Record<string, any>;
+  dataset_provenance: Record<string, any>;
+  evaluation_run_id: string;
+  total_cases: number;
+  passed_cases: number;
+  failed_cases: number;
+  pass_rate: number;
+  evaluator_versions: Record<string, string>;
+  sha256_hash: string;
+  timestamp: string;
+}
+
+
 
 
 

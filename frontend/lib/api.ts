@@ -486,6 +486,80 @@ export const api = {
     const query = repo ? `?repository=${encodeURIComponent(repo)}` : '';
     return fetchJson<any[]>(`/github/checks/${encodeURIComponent(commitSha)}${query}`);
   },
+
+  // Slice 7.7: Prompt Reliability Lab
+  async listPrompts(): Promise<import('@/types').PromptDefinitionModel[]> {
+    return fetchJson<import('@/types').PromptDefinitionModel[]>('/prompt-lab/prompts');
+  },
+
+  async getPrompt(promptId: string): Promise<{
+    prompt: import('@/types').PromptDefinitionModel;
+    versions: import('@/types').PromptVersionModel[];
+  }> {
+    return fetchJson<any>(`/prompt-lab/prompts/${encodeURIComponent(promptId)}`);
+  },
+
+  async createPrompt(payload: { prompt_id: string; name: string; description?: string }): Promise<import('@/types').PromptDefinitionModel> {
+    return fetchJson<import('@/types').PromptDefinitionModel>('/prompt-lab/prompts', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async createPromptVersion(promptId: string, payload: any): Promise<import('@/types').PromptVersionModel> {
+    return fetchJson<import('@/types').PromptVersionModel>(`/prompt-lab/prompts/${encodeURIComponent(promptId)}/versions`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async getPromptVersion(promptId: string, version: number): Promise<import('@/types').PromptVersionModel> {
+    return fetchJson<import('@/types').PromptVersionModel>(`/prompt-lab/prompts/${encodeURIComponent(promptId)}/versions/${version}`);
+  },
+
+  async listEvaluationSuites(): Promise<import('@/types').EvaluationSuiteModel[]> {
+    return fetchJson<import('@/types').EvaluationSuiteModel[]>('/prompt-lab/evaluation-suites');
+  },
+
+  async getEvaluationSuite(suiteId: string, version?: number): Promise<{
+    suite: import('@/types').EvaluationSuiteModel;
+    version?: import('@/types').EvaluationSuiteVersionModel | null;
+  }> {
+    const query = version ? `?version=${version}` : '';
+    return fetchJson<any>(`/prompt-lab/evaluation-suites/${encodeURIComponent(suiteId)}${query}`);
+  },
+
+  async runEvaluation(payload: {
+    prompt_id: string;
+    prompt_version: number;
+    suite_id: string;
+    suite_version: number;
+    model?: string;
+  }): Promise<import('@/types').EvaluationRunModel> {
+    return fetchJson<import('@/types').EvaluationRunModel>('/prompt-lab/evaluations/run', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async getEvaluation(runId: string): Promise<{
+    run: import('@/types').EvaluationRunModel;
+    diagnoses: import('@/types').PromptDiagnosisModel[];
+  }> {
+    return fetchJson<any>(`/prompt-lab/evaluations/${encodeURIComponent(runId)}`);
+  },
+
+  async comparePromptVersions(
+    promptId: string,
+    v1: number,
+    v2: number,
+    suiteId: string,
+    suiteVersion: number
+  ): Promise<import('@/types').PromptComparisonResultModel> {
+    return fetchJson<import('@/types').PromptComparisonResultModel>(
+      `/prompt-lab/evaluations/compare/versions?prompt_id=${encodeURIComponent(promptId)}&v1=${v1}&v2=${v2}&suite_id=${encodeURIComponent(suiteId)}&suite_version=${suiteVersion}`
+    );
+  },
 };
 
 

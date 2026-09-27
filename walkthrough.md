@@ -834,6 +834,68 @@ In `backend/tests/test_github_lifecycle_e2e.py`:
 - Release Readiness synthesized all 4 gates: `overall_status = READY_FOR_RELEASE`.
 - Status: **`REAL_GITHUB_INTEGRATION_VERIFIED`**.
 
+---
+
+# Slice 7.7 — Prompt Reliability Lab: Systematic AI Application Evaluation
+
+## Executive Summary
+
+Slice 7.7 expands the AI Engineering Lab into a rigorous, systematic **Prompt Reliability Lab**. It provides engineers and agents with immutable prompt versioning, versioned evaluation suites, deterministic and semantic evaluators, multi-layer causal diagnosis, and comparative regression detection over frozen benchmarks.
+
+### Non-Negotiable Invariants Upheld
+1. **Prompt Version Immutability**: Prompt versions cannot be mutated once evaluated.
+2. **Deterministic Evaluation Precedence**: Schema, rule, and code/SQL sandbox evaluators run first; a single LLM judge cannot override deterministic failures.
+3. **Multi-Layer Causal Attribution**: Failures are distinguished across 10 causal layers (`PROMPT_DEFECT`, `MODEL_BEHAVIOR`, `RETRIEVAL_FAILURE`, `CONTEXT_FAILURE`, `TOOL_FAILURE`, `APPLICATION_LOGIC`, `PARSER_FAILURE`, `SCHEMA_FAILURE`, `DATA_FAILURE`, `EVALUATOR_FAILURE`, and `UNKNOWN`).
+4. **Epistemic Integrity**: `UNKNOWN` and `ABSTAINED` states are strictly preserved; they never become `PASS`.
+5. **No Autonomous Deployment**: Candidate prompt improvements require human approval. No automatic production prompt deployment or mutation.
+
+---
+
+## 1. Architectural Implementation
+
+### 1.1 Prompt Lab Domain (`backend/app/prompt_lab/`)
+* **`models.py`**: Clean typed Pydantic models for prompts, versioning, evaluation suites, cases, execution records, evaluator results, diagnoses, candidates, comparisons, and snapshots.
+* **`repository.py`**: `PromptLabRepository` with SQLite persistence (`prompt_definitions`, `prompt_versions`, `evaluation_suites`, `evaluation_suite_versions`, `prompt_evaluation_runs`, `prompt_diagnoses`, `prompt_candidates`, `prompt_snapshots`), immutability enforcement, and SHA-256 snapshot hashing.
+* **`prompt_service.py`**: `PromptService` managing prompt creation, versioning, template validation (`{{var}}` placeholders), variable checking, and secret scrubbing (`redact_secrets`).
+* **`evaluator_service.py`**:
+  * `JSONSchemaEvaluator`: Strict JSON parsing and schema attribute/type validation.
+  * `RuleBasedEvaluator`: Evaluates `forbidden:`, `required_phrase:`, `max_chars:`, `min_chars:`, `citation_required`.
+  * `ExactMatchEvaluator`: Exact string or canonical JSON match.
+  * `CodeExecutionEvaluator`: Safe AST inspection and restricted sandbox execution (forbids `os`, `subprocess`, `eval`, etc.).
+  * `SQLExecutionEvaluator`: In-memory sandbox syntax analysis and destructive keyword rejection.
+  * `GroundingEvaluator`: Extracts material claims and checks token overlap against retrieved source chunks (`SUPPORTED`, `PARTIALLY_SUPPORTED`, `UNSUPPORTED`, `UNKNOWN`).
+  * `SemanticJudgeEvaluator`: Evaluates semantic fulfillment and keyword alignment against expected behavior.
+  * `CompositeEvaluator`: Coordinates deterministic checks first, followed by Grounding and Semantic evaluation without allowing LLM judges to override deterministic failures.
+* **`diagnosis_service.py`**: `PromptDiagnosisService` synthesizing evidence into structured facts (`OBSERVED`, `INFERRED`, `HYPOTHESIS`) and proposing candidate prompt improvements.
+* **`evaluation_service.py`**: `EvaluationService` orchestrating evaluation runs, immutable evaluation snapshots, and multi-dimensional prompt comparisons (`NEW_PASS`, `NEW_FAILURE`, `REGRESSION`, `FIXED_FAILURE`, `UNCHANGED`).
+* **`errors.py`**: Typed exceptions.
+
+### 1.2 Control Plane Tool Registry Expansion (35 Canonical Tools)
+Added 13 new canonical Prompt Lab tools:
+`list_prompts`, `get_prompt`, `get_prompt_version`, `create_prompt_version`, `list_evaluation_suites`, `get_evaluation_suite`, `start_evaluation`, `get_evaluation`, `get_evaluation_result`, `compare_prompt_versions`, `get_prompt_regressions`, `get_prompt_diagnosis`, `get_prompt_evidence`.
+
+### 1.3 REST API (`backend/app/api/v1/prompt_lab.py`)
+Registered REST endpoints under `/api/v1/prompt-lab` for prompts, versions, evaluation suites, test execution, version comparison, and immutable snapshots.
+
+### 1.4 Frontend Dashboard (`frontend/app/prompts/page.tsx`)
+* **Prompt Registry & Structured Editor**: Inspects version history, variable schemas, output schemas, and structured components (Role, Constraints, Examples).
+* **Evaluation Suites**: Displays versioned benchmark test cases across categories (`NORMAL`, `AMBIGUOUS`, `MISSING_INPUT`, `INJECTION`, `REGRESSION`).
+* **Evaluation Runs & Failure Inspector**: Metrics bar, per-case drilldown, evaluator breakdown, and multi-layer causal diagnosis with epistemic fact cards (`OBSERVED`, `INFERRED`, `HYPOTHESIS`).
+* **Version Comparison**: Side-by-side multidimensional breakdown (Deterministic, Grounding, Semantic, Pass Rate Delta), per-case transition diffs, and critical regression callout banner.
+
+---
+
+## 2. Test Verification Matrix
+
+* **Unit & Safety Tests (`backend/tests/test_prompt_lab_core.py`)**: **14/14 PASSED** (Immutability, template validation, secret redaction, schema evaluator, rule evaluator, exact match, code execution sandbox, SQL execution sandbox, grounding evaluator, semantic judge, composite precedence, epistemic UNKNOWN/ABSTAINED preservation, diagnosis grounding, snapshot tampering protection).
+* **Controlled 14-Step Remediation Scenario (`backend/tests/test_prompt_lab_e2e_remediation.py`)**: **1/1 PASSED** (Prompt v1 $\to$ Evaluation detects failure $\to$ Diagnosis $\to$ Candidate improvement $\to$ Prompt v2 $\to$ Benchmark re-run $\to$ Regression comparison $\to$ Snapshot hash verification $\to$ Human decision required).
+* **Tool Registry & REST API (`backend/tests/test_prompt_lab_tools_and_api.py`)**: **2/2 PASSED** (Tool invocation via ToolRegistry and REST endpoints).
+* **Skill Integration (`backend/tests/test_antigravity_skill_integration.py`)**: **8/8 PASSED**.
+* **Frontend Production Build**: `npm run build` compiled **11 static pages cleanly** with 0 errors.
+
+**Status:** **`PROMPT_RELIABILITY_LAB_VERIFIED`**
+
+
 
 
 

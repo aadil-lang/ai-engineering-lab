@@ -73,6 +73,34 @@ from backend.app.models.lifecycle_tools import (
     GetGitHubPRReviewRequest,
     GetGitHubPRReviewResponse,
 )
+from backend.app.models.prompt_lab_tools import (
+    ListPromptsRequest,
+    ListPromptsResponse,
+    GetPromptRequest,
+    GetPromptResponse,
+    GetPromptVersionRequest,
+    GetPromptVersionResponse,
+    CreatePromptVersionRequest,
+    CreatePromptVersionResponse,
+    ListEvaluationSuitesRequest,
+    ListEvaluationSuitesResponse,
+    GetEvaluationSuiteRequest,
+    GetEvaluationSuiteResponse,
+    StartEvaluationRequest,
+    StartEvaluationResponse,
+    GetEvaluationRequest,
+    GetEvaluationResponse,
+    GetEvaluationResultRequest,
+    GetEvaluationResultResponse,
+    ComparePromptVersionsRequest,
+    ComparePromptVersionsResponse,
+    GetPromptRegressionsRequest,
+    GetPromptRegressionsResponse,
+    GetPromptDiagnosisRequest,
+    GetPromptDiagnosisResponse,
+    GetPromptEvidenceRequest,
+    GetPromptEvidenceResponse,
+)
 from backend.app.control_plane.context import ToolInvocationContext
 from backend.app.control_plane.errors import (
     ApplicationNotFoundError,
@@ -105,6 +133,7 @@ class ReliabilityControlPlane:
         db_path: str = "backend/data/reliability_platform.db",
         enable_lifecycle_tools: bool = False,
         enable_github_tools: bool = False,
+        enable_prompt_lab_tools: bool = False,
     ):
         self.db_path = db_path
         self.repo = SQLiteRepository(db_path=db_path)
@@ -152,11 +181,20 @@ class ReliabilityControlPlane:
         self.github_pr_service = None
         self.github_actions_service = None
 
+        # Prompt Lab Services
+        self.prompt_repo = None
+        self.prompt_service = None
+        self.evaluation_service = None
+        self.prompt_diagnosis_service = None
+
         if enable_lifecycle_tools or os.environ.get("ENABLE_LIFECYCLE_TOOLS") == "1":
             self.register_lifecycle_tools()
 
         if enable_github_tools or os.environ.get("ENABLE_GITHUB_TOOLS") == "1":
             self.register_github_tools()
+
+        if enable_prompt_lab_tools or os.environ.get("ENABLE_PROMPT_LAB_TOOLS") == "1":
+            self.register_prompt_lab_tools()
 
     def _register_all_tools(self):
         """Registers the 10 canonical agent tools into the registry."""
@@ -1140,5 +1178,346 @@ class ReliabilityControlPlane:
         review = self.github_pr_service.review_pull_request(req.repository, req.pr_number)
         synced = self.github_pr_service.repo.get_synced_pr(req.repository, req.pr_number)
         return GetGitHubPRReviewResponse(review=review, synchronized=synced)
+
+    def register_prompt_lab_tools(self):
+        """Registers the 13 Prompt Reliability Lab tools into the registry."""
+        from backend.app.prompt_lab.repository import PromptLabRepository
+        from backend.app.prompt_lab.prompt_service import PromptService
+        from backend.app.prompt_lab.evaluation_service import EvaluationService
+        from backend.app.prompt_lab.diagnosis_service import PromptDiagnosisService
+
+        if not self.prompt_repo:
+            self.prompt_repo = PromptLabRepository(self.db_path)
+        if not self.prompt_service:
+            self.prompt_service = PromptService(self.prompt_repo)
+        if not self.prompt_diagnosis_service:
+            self.prompt_diagnosis_service = PromptDiagnosisService()
+        if not self.evaluation_service:
+            self.evaluation_service = EvaluationService(
+                self.prompt_repo, self.prompt_service, self.prompt_diagnosis_service
+            )
+
+        # Tool 23: list_prompts (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="list_prompts",
+                description="List all registered prompt definitions.",
+                mode=ToolMode.READ_ONLY,
+                request_model=ListPromptsRequest,
+                response_model=ListPromptsResponse,
+                handler=self.list_prompts,
+                version="1.0",
+            )
+        )
+
+        # Tool 24: get_prompt (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_prompt",
+                description="Get prompt definition and its version history.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetPromptRequest,
+                response_model=GetPromptResponse,
+                handler=self.get_prompt,
+                version="1.0",
+            )
+        )
+
+        # Tool 25: get_prompt_version (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_prompt_version",
+                description="Get an exact immutable prompt version.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetPromptVersionRequest,
+                response_model=GetPromptVersionResponse,
+                handler=self.get_prompt_version,
+                version="1.0",
+            )
+        )
+
+        # Tool 26: create_prompt_version (ACTION)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="create_prompt_version",
+                description="Create a new candidate or draft version for a prompt.",
+                mode=ToolMode.ACTION,
+                request_model=CreatePromptVersionRequest,
+                response_model=CreatePromptVersionResponse,
+                handler=self.create_prompt_version,
+                version="1.0",
+            )
+        )
+
+        # Tool 27: list_evaluation_suites (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="list_evaluation_suites",
+                description="List all prompt evaluation suites.",
+                mode=ToolMode.READ_ONLY,
+                request_model=ListEvaluationSuitesRequest,
+                response_model=ListEvaluationSuitesResponse,
+                handler=self.list_evaluation_suites,
+                version="1.0",
+            )
+        )
+
+        # Tool 28: get_evaluation_suite (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_evaluation_suite",
+                description="Get an evaluation suite and its versioned test cases.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetEvaluationSuiteRequest,
+                response_model=GetEvaluationSuiteResponse,
+                handler=self.get_evaluation_suite,
+                version="1.0",
+            )
+        )
+
+        # Tool 29: start_evaluation (ACTION)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="start_evaluation",
+                description="Execute an evaluation suite against a specific prompt version.",
+                mode=ToolMode.ACTION,
+                request_model=StartEvaluationRequest,
+                response_model=StartEvaluationResponse,
+                handler=self.start_evaluation,
+                version="1.0",
+            )
+        )
+
+        # Tool 30: get_evaluation (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_evaluation",
+                description="Get the results and diagnoses of an evaluation run.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetEvaluationRequest,
+                response_model=GetEvaluationResponse,
+                handler=self.get_evaluation,
+                version="1.0",
+            )
+        )
+
+        # Tool 31: get_evaluation_result (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_evaluation_result",
+                description="Get evaluation result and diagnosis for a single test case.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetEvaluationResultRequest,
+                response_model=GetEvaluationResultResponse,
+                handler=self.get_evaluation_result,
+                version="1.0",
+            )
+        )
+
+        # Tool 32: compare_prompt_versions (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="compare_prompt_versions",
+                description="Compare evaluation results of two prompt versions on the same frozen suite.",
+                mode=ToolMode.READ_ONLY,
+                request_model=ComparePromptVersionsRequest,
+                response_model=ComparePromptVersionsResponse,
+                handler=self.compare_prompt_versions,
+                version="1.0",
+            )
+        )
+
+        # Tool 33: get_prompt_regressions (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_prompt_regressions",
+                description="Detect regressions between two evaluated prompt versions.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetPromptRegressionsRequest,
+                response_model=GetPromptRegressionsResponse,
+                handler=self.get_prompt_regressions,
+                version="1.0",
+            )
+        )
+
+        # Tool 34: get_prompt_diagnosis (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_prompt_diagnosis",
+                description="Get detailed multi-layer failure diagnosis with epistemic facts.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetPromptDiagnosisRequest,
+                response_model=GetPromptDiagnosisResponse,
+                handler=self.get_prompt_diagnosis,
+                version="1.0",
+            )
+        )
+
+        # Tool 35: get_prompt_evidence (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_prompt_evidence",
+                description="Get evidence artifacts and execution record for an evaluated prompt case.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetPromptEvidenceRequest,
+                response_model=GetPromptEvidenceResponse,
+                handler=self.get_prompt_evidence,
+                version="1.0",
+            )
+        )
+
+    def _ensure_prompt_lab_init(self):
+        if not self.prompt_service or not self.evaluation_service:
+            self.register_prompt_lab_tools()
+
+    def list_prompts(self, req: ListPromptsRequest, context: ToolInvocationContext) -> ListPromptsResponse:
+        self._ensure_prompt_lab_init()
+        prompts = self.prompt_service.list_prompts()
+        return ListPromptsResponse(prompts=prompts[:req.limit or 50])
+
+    def get_prompt(self, req: GetPromptRequest, context: ToolInvocationContext) -> GetPromptResponse:
+        self._ensure_prompt_lab_init()
+        p = self.prompt_service.get_prompt(req.prompt_id)
+        versions = self.prompt_service.list_prompt_versions(req.prompt_id)
+        return GetPromptResponse(prompt=p, versions=versions)
+
+    def get_prompt_version(self, req: GetPromptVersionRequest, context: ToolInvocationContext) -> GetPromptVersionResponse:
+        self._ensure_prompt_lab_init()
+        pv = self.prompt_service.get_prompt_version(req.prompt_id, req.version)
+        return GetPromptVersionResponse(version=pv)
+
+    def create_prompt_version(self, req: CreatePromptVersionRequest, context: ToolInvocationContext) -> CreatePromptVersionResponse:
+        self._ensure_prompt_lab_init()
+        pv = self.prompt_service.create_prompt_version(
+            prompt_id=req.prompt_id,
+            template=req.template,
+            variables_schema=req.variables_schema,
+            output_schema=req.output_schema,
+            components=req.components,
+            change_reason=req.change_reason,
+            parent_version=req.parent_version,
+            status=req.status,
+        )
+        return CreatePromptVersionResponse(version=pv)
+
+    def list_evaluation_suites(self, req: ListEvaluationSuitesRequest, context: ToolInvocationContext) -> ListEvaluationSuitesResponse:
+        self._ensure_prompt_lab_init()
+        suites = self.evaluation_service.list_suites()
+        return ListEvaluationSuitesResponse(suites=suites[:req.limit or 50])
+
+    def get_evaluation_suite(self, req: GetEvaluationSuiteRequest, context: ToolInvocationContext) -> GetEvaluationSuiteResponse:
+        self._ensure_prompt_lab_init()
+        s = self.evaluation_service.get_suite(req.suite_id)
+        sv = None
+        if req.version:
+            sv = self.evaluation_service.get_suite_version(req.suite_id, req.version)
+        else:
+            versions = [self.evaluation_service.get_suite_version(req.suite_id, v) for v in range(1, 20)]
+            valid_vers = [v for v in versions if v is not None]
+            if valid_vers:
+                sv = valid_vers[-1]
+        return GetEvaluationSuiteResponse(suite=s, suite_version=sv)
+
+    def start_evaluation(self, req: StartEvaluationRequest, context: ToolInvocationContext) -> StartEvaluationResponse:
+        self._ensure_prompt_lab_init()
+        run = self.evaluation_service.execute_evaluation(
+            prompt_id=req.prompt_id,
+            prompt_version=req.prompt_version,
+            suite_id=req.suite_id,
+            suite_version=req.suite_version,
+            model=req.model,
+            generation_parameters=req.generation_parameters,
+        )
+        snap = self.prompt_repo.get_snapshot(f"eval_snap_{run.prompt_id}_v{run.prompt_version}_{run.suite_id}_v{run.suite_version}")
+        return StartEvaluationResponse(run=run, snapshot=snap)
+
+    def get_evaluation(self, req: GetEvaluationRequest, context: ToolInvocationContext) -> GetEvaluationResponse:
+        self._ensure_prompt_lab_init()
+        run = self.prompt_repo.get_run(req.evaluation_run_id)
+        if not run:
+            from backend.app.control_plane.errors import FailureNotFoundError
+            raise FailureNotFoundError(f"Evaluation run '{req.evaluation_run_id}' not found.")
+        diags = self.prompt_repo.list_diagnoses_for_run(req.evaluation_run_id)
+        return GetEvaluationResponse(run=run, diagnoses=diags)
+
+    def get_evaluation_result(self, req: GetEvaluationResultRequest, context: ToolInvocationContext) -> GetEvaluationResultResponse:
+        self._ensure_prompt_lab_init()
+        run = self.prompt_repo.get_run(req.evaluation_run_id)
+        case_res = None
+        diag = None
+        if run:
+            for cr in run.case_results:
+                if cr.case_id == req.case_id:
+                    case_res = cr
+                    break
+        diags = self.prompt_repo.list_diagnoses_for_run(req.evaluation_run_id)
+        for d in diags:
+            if d.case_id == req.case_id:
+                diag = d
+                break
+        return GetEvaluationResultResponse(case_result=case_res, diagnosis=diag)
+
+    def compare_prompt_versions(self, req: ComparePromptVersionsRequest, context: ToolInvocationContext) -> ComparePromptVersionsResponse:
+        self._ensure_prompt_lab_init()
+        res = self.evaluation_service.compare_prompt_versions(
+            prompt_id=req.prompt_id,
+            v1_version=req.v1_version,
+            v2_version=req.v2_version,
+            suite_id=req.suite_id,
+            suite_version=req.suite_version,
+        )
+        return ComparePromptVersionsResponse(comparison=res)
+
+    def get_prompt_regressions(self, req: GetPromptRegressionsRequest, context: ToolInvocationContext) -> GetPromptRegressionsResponse:
+        self._ensure_prompt_lab_init()
+        comp = self.evaluation_service.compare_prompt_versions(
+            prompt_id=req.prompt_id,
+            v1_version=req.v1_version,
+            v2_version=req.v2_version,
+            suite_id=req.suite_id,
+            suite_version=req.suite_version,
+        )
+        regressions = [t for t in comp.transitions if t.transition == "REGRESSION"]
+        return GetPromptRegressionsResponse(
+            prompt_id=req.prompt_id,
+            v1_version=req.v1_version,
+            v2_version=req.v2_version,
+            total_regressions=comp.regressions_count,
+            critical_regressions=comp.critical_regressions,
+            regressions=regressions,
+        )
+
+    def get_prompt_diagnosis(self, req: GetPromptDiagnosisRequest, context: ToolInvocationContext) -> GetPromptDiagnosisResponse:
+        self._ensure_prompt_lab_init()
+        d = self.prompt_repo.get_diagnosis(req.diagnosis_id)
+        if not d:
+            from backend.app.control_plane.errors import FailureNotFoundError
+            raise FailureNotFoundError(f"Diagnosis '{req.diagnosis_id}' not found.")
+        return GetPromptDiagnosisResponse(diagnosis=d)
+
+    def get_prompt_evidence(self, req: GetPromptEvidenceRequest, context: ToolInvocationContext) -> GetPromptEvidenceResponse:
+        self._ensure_prompt_lab_init()
+        run = self.prompt_repo.get_run(req.evaluation_run_id)
+        exec_record = None
+        evidence_ids = []
+        facts = []
+        if run:
+            for cr in run.case_results:
+                if cr.case_id == req.case_id:
+                    exec_record = cr.execution
+                    evidence_ids = cr.evidence_ids
+                    break
+        diags = self.prompt_repo.list_diagnoses_for_run(req.evaluation_run_id)
+        for d in diags:
+            if d.case_id == req.case_id:
+                facts = [f.model_dump() for f in d.facts]
+                break
+        return GetPromptEvidenceResponse(
+            case_id=req.case_id,
+            evidence_ids=evidence_ids,
+            execution=exec_record,
+            facts=facts,
+        )
+
 
 

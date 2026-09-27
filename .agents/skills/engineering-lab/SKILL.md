@@ -103,10 +103,35 @@ The Engineering Lab exposes 10 canonical tools via Model Context Protocol (MCP).
 | `get_github_ci_status` | `READ_ONLY` | Verify GitHub Actions workflow runs for exact head commit | CI conclusion must be success on exact commit SHA. |
 | `get_github_checks` | `READ_ONLY` | List commit status check runs from GitHub | Inspect granular check statuses. |
 | `get_github_pr_review` | `READ_ONLY` | Run static AI code review on GitHub PR diff | Classify findings into OBSERVED, INFERRED, HYPOTHESIS. |
+| `list_prompts` | `READ_ONLY` | List all registered prompt definitions | Query active prompts in Prompt Reliability Lab. |
+| `get_prompt` | `READ_ONLY` | Get prompt definition and version history | Inspect immutable versions of a prompt. |
+| `get_prompt_version` | `READ_ONLY` | Get exact template and schemas of prompt version | Evaluated versions are immutable. |
+| `create_prompt_version` | `ACTION` | Create a new draft/candidate prompt version | Propose new version without mutating existing ones. |
+| `list_evaluation_suites` | `READ_ONLY` | List versioned evaluation suites | Browse benchmark suites. |
+| `get_evaluation_suite` | `READ_ONLY` | Get evaluation suite and test cases | Inspect test cases across evaluation categories. |
+| `start_evaluation` | `ACTION` | Execute evaluation suite against prompt version | Produces reproducible execution records & snapshot. |
+| `get_evaluation` | `READ_ONLY` | Get evaluation run results and diagnoses | Review pass rates and per-case results. |
+| `get_evaluation_result` | `READ_ONLY` | Get single test case evaluation and diagnosis | Review deterministic, grounding, and semantic scores. |
+| `compare_prompt_versions` | `READ_ONLY` | Compare two prompt versions on frozen suite | Evaluates multi-dimensional diffs without single score. |
+| `get_prompt_regressions` | `READ_ONLY` | Detect case regressions between prompt versions | Surfacing critical regressions is mandatory. |
+| `get_prompt_diagnosis` | `READ_ONLY` | Get multi-layer causal diagnosis for AI failure | Distinguishes PROMPT, MODEL, RETRIEVAL, TOOL, etc. |
+| `get_prompt_evidence` | `READ_ONLY` | Retrieve execution record and grounding evidence | Verify claim-level evidence and execution hashes. |
 
-> **Security Restriction**: Only canonical read-oriented tools are exposed. No arbitrary shell, SQL, filesystem, credential, merge, or deployment tools.
+> **Security Restriction**: Only canonical read-oriented tools and bounded actions are exposed. No arbitrary shell, SQL, filesystem, credential, merge, prompt auto-deployment, or production mutations.
 
 For schemas, arguments, and return envelopes, see the [Tool Usage Reference](./references/tool-usage.md).
+
+---
+
+## Prompt Reliability Lab Operational Principles (Slice 7.7)
+
+When evaluating AI prompts and model interactions:
+1. **Prompts are Engineering Artifacts**: Prompt versions are strictly immutable once evaluated. Never attempt to edit an evaluated version in-place.
+2. **Multi-Causal Layer Attribution**: A failed output must NOT be assumed to be a prompt failure. Distinguish `PROMPT_DEFECT`, `MODEL_BEHAVIOR`, `RETRIEVAL_FAILURE`, `CONTEXT_FAILURE`, `TOOL_FAILURE`, `APPLICATION_LOGIC`, `PARSER_FAILURE`, `SCHEMA_FAILURE`, `DATA_FAILURE`, `EVALUATOR_FAILURE`, and `UNKNOWN`.
+3. **Deterministic Evaluation Precedence**: Schema validation, rule constraints, and syntax checks run before LLM judges. A single LLM judge cannot override deterministic failures.
+4. **Epistemic Certainty**: Preserve `UNKNOWN` and `ABSTAINED` states; never coerce them into `PASS`.
+5. **Regression Detection**: New prompt versions must be evaluated against the identical frozen evaluation suite. Critical regressions must never be hidden behind aggregate improvements.
+6. **No Autonomous Deployment**: Candidate prompt improvements require human review and approval. Automated prompt deployment to production is strictly forbidden.
 
 ---
 

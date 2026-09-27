@@ -134,6 +134,21 @@ The control plane registry cleanly partitions into 10 reliability tools, 6 local
 21. `get_github_checks` (Read)
 22. `get_github_pr_review` (Read)
 
+### Prompt Reliability Lab Tools (Slice 7.7)
+23. `list_prompts` (Read)
+24. `get_prompt` (Read)
+25. `get_prompt_version` (Read)
+26. `create_prompt_version` (Action)
+27. `list_evaluation_suites` (Read)
+28. `get_evaluation_suite` (Read)
+29. `start_evaluation` (Action)
+30. `get_evaluation` (Read)
+31. `get_evaluation_result` (Read)
+32. `compare_prompt_versions` (Read)
+33. `get_prompt_regressions` (Read)
+34. `get_prompt_diagnosis` (Read)
+35. `get_prompt_evidence` (Read)
+
 Zero tools provide arbitrary shell execution, database manipulation, or unvetted filesystem writes.
 
 ---
@@ -147,3 +162,41 @@ In GitHub mode:
    - Verification results NEVER leak across commit boundaries.
 3. **Idempotent PR Status Comments**: Lab evaluation results are published to PR discussions using structured, deterministic Markdown comments tagged with an HTML idempotency comment (`<!-- antigravity-idempotency: ... -->`).
 4. **Human Decision Invariant**: `READY_FOR_RELEASE` indicates all gates passed on the target SHA; automated merge and automated production deployment remain strictly prohibited.
+
+---
+
+## 7. Interconnected Engineering Subsystems (Slice 7.7)
+
+The AI Engineering Lab harmonizes four complementary verification pillars:
+
+```text
+┌────────────────────────────────┐         ┌────────────────────────────────┐
+│      GitHub Lifecycle (7.6)    │         │     Software Reliability (7.3) │
+│ - Canonical VCS provenance     │         │ - Dynamic Playwright sessions  │
+│ - PR diff & static AI review   │         │ - Longitudinal failure risk    │
+│ - GitHub Actions CI gates      │         │ - Natural defect observation   │
+└────────────────┬───────────────┘         └────────────────┬───────────────┘
+                 │                                          │
+                 ▼                                          ▼
+     ┌──────────────────────────────────────────────────────────┐
+     │                Evidence & Cryptographic Store            │
+     │ - SHA-256 audit artifacts & reproducible evaluation logs │
+     │ - Strict epistemic separation: OBSERVED/INFERRED/HYPOTH  │
+     └───────────────────────────┬──────────────────────────────┘
+                                 │
+                                 ▼
+                 ┌────────────────────────────────┐
+                 │  Prompt Reliability Lab (7.7)  │
+                 │ - Immutable prompt versions    │
+                 │ - Frozen evaluation suites     │
+                 │ - Deterministic & Grounding    │
+                 │ - Multi-causal attribution     │
+                 │ - Regression detection         │
+                 │ - Human-approved candidates    │
+                 └────────────────────────────────┘
+```
+
+1. **GitHub Lifecycle**: Governs what code is proposed and whether deterministic CI checks passed.
+2. **Software Reliability Lab**: Governs what the running application actually did at runtime.
+3. **Prompt Reliability Lab**: Governs whether prompt versions meet structured schemas, grounding constraints, and behavioral requirements across versioned test cases without regressing.
+4. **Engineering Evidence**: Provides immutable, mathematically reproducible proof connecting code, prompts, runs, and human decisions.

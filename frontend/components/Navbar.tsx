@@ -154,6 +154,20 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenLaunchModal }) => {
             </Link>
 
             <Link
+              href="/prompts"
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                pathname.startsWith('/prompts')
+                  ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+              }`}
+            >
+              <div className="flex items-center space-x-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-pink-400" />
+                <span>Prompt Lab</span>
+              </div>
+            </Link>
+
+            <Link
               href="/architecture"
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 pathname === '/architecture'
