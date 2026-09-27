@@ -410,6 +410,82 @@ export const api = {
     const query = prId ? `?pr_id=${encodeURIComponent(prId)}` : '';
     return fetchJson<import('@/types').ReleaseReadinessModel>(`/lifecycle/release-readiness/${encodeURIComponent(commitSha)}${query}`);
   },
+
+  // Slice 7.6: Real GitHub API Integrations
+  async getGitHubRepository(repo?: string): Promise<import('@/types').GitHubRepositoryModel> {
+    const query = repo ? `?repository=${encodeURIComponent(repo)}` : '';
+    return fetchJson<import('@/types').GitHubRepositoryModel>(`/github/repository${query}`);
+  },
+
+  async getGitHubPRs(repo?: string, state: string = 'open'): Promise<import('@/types').GitHubPullRequestModel[]> {
+    const params = new URLSearchParams();
+    if (repo) params.append('repository', repo);
+    params.append('state', state);
+    return fetchJson<import('@/types').GitHubPullRequestModel[]>(`/github/pull-requests?${params.toString()}`);
+  },
+
+  async getGitHubPRDetail(number: number, repo?: string): Promise<{
+    pull_request: import('@/types').GitHubPullRequestModel;
+    synchronized: import('@/types').SynchronizedPRModel;
+  }> {
+    const query = repo ? `?repository=${encodeURIComponent(repo)}` : '';
+    return fetchJson<{
+      pull_request: import('@/types').GitHubPullRequestModel;
+      synchronized: import('@/types').SynchronizedPRModel;
+    }>(`/github/pull-requests/${number}${query}`);
+  },
+
+  async getGitHubPRDiff(number: number, repo?: string): Promise<{
+    pr_number: number;
+    diff: string;
+    files: Array<{ sha: string; filename: string; status: string; additions: number; deletions: number }>;
+  }> {
+    const query = repo ? `?repository=${encodeURIComponent(repo)}` : '';
+    return fetchJson<any>(`/github/pull-requests/${number}/diff${query}`);
+  },
+
+  async reviewGitHubPR(number: number, repo?: string): Promise<{
+    review: import('@/types').PRReviewModel;
+    synchronized: import('@/types').SynchronizedPRModel;
+  }> {
+    const query = repo ? `?repository=${encodeURIComponent(repo)}` : '';
+    return fetchJson<any>(`/github/pull-requests/${number}/review${query}`, {
+      method: 'POST',
+    });
+  },
+
+  async publishGitHubLabComment(
+    number: number,
+    payload: {
+      commit_sha: string;
+      lab_status: string;
+      ci_status?: string;
+      evidence_ids?: string[];
+      release_readiness_state?: string;
+    },
+    repo?: string
+  ): Promise<{ success: boolean; comment_body: string }> {
+    const query = repo ? `?repository=${encodeURIComponent(repo)}` : '';
+    return fetchJson<any>(`/github/pull-requests/${number}/comments${query}`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async getGitHubCIStatus(commitSha: string, repo?: string): Promise<{
+    commit_sha: string;
+    gate_status: string;
+    passed: boolean;
+    workflow_run?: import('@/types').GitHubWorkflowRunModel;
+  }> {
+    const query = repo ? `?repository=${encodeURIComponent(repo)}` : '';
+    return fetchJson<any>(`/github/actions/${encodeURIComponent(commitSha)}${query}`);
+  },
+
+  async getGitHubChecks(commitSha: string, repo?: string): Promise<any[]> {
+    const query = repo ? `?repository=${encodeURIComponent(repo)}` : '';
+    return fetchJson<any[]>(`/github/checks/${encodeURIComponent(commitSha)}${query}`);
+  },
 };
 
 

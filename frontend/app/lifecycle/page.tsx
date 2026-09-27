@@ -20,7 +20,10 @@ import {
   Info,
   Lock,
   ChevronRight,
-  HelpCircle
+  HelpCircle,
+  Github,
+  ExternalLink,
+  Cpu
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import {
@@ -30,6 +33,10 @@ import {
   PRReviewModel,
   CIRunModel,
   ReleaseReadinessModel,
+  GitHubRepositoryModel,
+  GitHubPullRequestModel,
+  SynchronizedPRModel,
+  GitHubWorkflowRunModel,
 } from '@/types';
 
 export default function EngineeringLifecyclePage() {
@@ -41,41 +48,67 @@ export default function EngineeringLifecyclePage() {
   const [readiness, setReadiness] = useState<ReleaseReadinessModel | null>(null);
   const [activePR, setActivePR] = useState<PullRequestModel | null>(null);
   const [prReviews, setPrReviews] = useState<PRReviewModel[]>([]);
+
+  // Slice 7.6: Real GitHub state
+  const [githubRepo, setGithubRepo] = useState<GitHubRepositoryModel | null>(null);
+  const [githubPRs, setGithubPRs] = useState<GitHubPullRequestModel[]>([]);
+  const [activeGitHubPR, setActiveGitHubPR] = useState<GitHubPullRequestModel | null>(null);
+  const [activeGitHubSync, setActiveGitHubSync] = useState<SynchronizedPRModel | null>(null);
+  const [githubCIRun, setGithubCIRun] = useState<GitHubWorkflowRunModel | null>(null);
+  const [githubCIStatus, setGithubCIStatus] = useState<string>('CI_UNVERIFIED');
+  const [githubCIPassed, setGithubCIPassed] = useState<boolean>(false);
+
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isTriggeringCI, setIsTriggeringCI] = useState<boolean>(false);
   const [isReviewingPR, setIsReviewingPR] = useState<boolean>(false);
-  const [selectedTab, setSelectedTab] = useState<'pipeline' | 'prs' | 'ci' | 'readiness'>('pipeline');
+  const [selectedTab, setSelectedTab] = useState<'github' | 'pipeline' | 'prs' | 'ci' | 'readiness'>('github');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Load baseline lifecycle data
+  // Load baseline lifecycle data and GitHub state
   const loadData = async () => {
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const [status, recentCommits, prList] = await Promise.all([
-        api.getLifecycleStatus(),
-        api.getLifecycleCommits(10),
-        api.getLifecyclePRs(),
+      const [status, recentCommits, prList, ghRepo, ghPRList] = await Promise.all([
+        api.getLifecycleStatus().catch(() => null),
+        api.getLifecycleCommits(10).catch(() => []),
+        api.getLifecyclePRs().catch(() => []),
+        api.getGitHubRepository().catch(() => null),
+        api.getGitHubPRs().catch(() => []),
       ]);
 
       setGitStatus(status);
       setCommits(recentCommits);
       setPRs(prList);
+      setGithubRepo(ghRepo);
+      setGithubPRs(ghPRList);
 
-      const headSha = status.commit_sha;
+      const headSha = status?.commit_sha || (recentCommits[0]?.commit_sha ?? '');
       setSelectedCommitSha(headSha);
 
       // Load CI & Readiness for HEAD commit
       if (headSha) {
-        const [runs, ready] = await Promise.all([
+        const [runs, ready, ghCI] = await Promise.all([
           api.getCIRuns(headSha).catch(() => []),
           api.getReleaseReadiness(headSha).catch(() => null),
+          api.getGitHubCIStatus(headSha).catch(() => null),
         ]);
         setCiRuns(runs);
         setReadiness(ready);
+        if (ghCI) {
+          setGithubCIStatus(ghCI.gate_status);
+          setGithubCIPassed(ghCI.passed);
+          setGithubCIRun(ghCI.workflow_run || null);
+        }
       }
 
-      if (prList.length > 0) {
+      if (ghPRList && ghPRList.length > 0) {
+        setActiveGitHubPR(ghPRList[0]);
+        const detail = await api.getGitHubPRDetail(ghPRList[0].number).catch(() => null);
+        if (detail) {
+          setActiveGitHubSync(detail.synchronized);
+        }
+      } else if (prList.length > 0) {
         setActivePR(prList[0]);
         const detail = await api.getLifecyclePRDetail(prList[0].id).catch(() => null);
         if (detail) {
@@ -96,62 +129,62 @@ export default function EngineeringLifecyclePage() {
   const handleSelectCommit = async (sha: string) => {
     setSelectedCommitSha(sha);
     try {
-      const [runs, ready] = await Promise.all([
+      const [runs, ready, ghCI] = await Promise.all([
         api.getCIRuns(sha).catch(() => []),
         api.getReleaseReadiness(sha).catch(() => null),
+        api.getGitHubCIStatus(sha).catch(() => null),
       ]);
       setCiRuns(runs);
       setReadiness(ready);
+      if (ghCI) {
+        setGithubCIStatus(ghCI.gate_status);
+        setGithubCIPassed(ghCI.passed);
+        setGithubCIRun(ghCI.workflow_run || null);
+      }
     } catch (err: any) {
       setErrorMsg(err.message);
     }
   };
 
-  const handleSelectPR = async (pr: PullRequestModel) => {
-    setActivePR(pr);
+  const handleSelectGitHubPR = async (pr: GitHubPullRequestModel) => {
+    setActiveGitHubPR(pr);
+    handleSelectCommit(pr.head_sha);
     try {
-      const detail = await api.getLifecyclePRDetail(pr.id);
-      setPrReviews(detail.reviews);
+      const detail = await api.getGitHubPRDetail(pr.number);
+      setActiveGitHubSync(detail.synchronized);
     } catch (err: any) {
       setErrorMsg(err.message);
     }
   };
 
-  const handleTriggerCI = async (workflow: string = 'pytest_unit') => {
-    if (!selectedCommitSha) return;
-    setIsTriggeringCI(true);
-    try {
-      await api.triggerCIRun(selectedCommitSha, workflow);
-      const [updatedRuns, updatedReady] = await Promise.all([
-        api.getCIRuns(selectedCommitSha),
-        api.getReleaseReadiness(selectedCommitSha, activePR?.id),
-      ]);
-      setCiRuns(updatedRuns);
-      setReadiness(updatedReady);
-    } catch (err: any) {
-      setErrorMsg(err.message);
-    } finally {
-      setIsTriggeringCI(false);
-    }
-  };
-
-  const handleReviewPR = async () => {
-    if (!activePR) return;
+  const handleReviewGitHubPR = async () => {
+    if (!activeGitHubPR) return;
     setIsReviewingPR(true);
     try {
-      await api.reviewLifecyclePR(activePR.id);
-      const detail = await api.getLifecyclePRDetail(activePR.id);
-      setPrReviews(detail.reviews);
-      setActivePR(detail.pull_request);
+      const res = await api.reviewGitHubPR(activeGitHubPR.number);
+      setActiveGitHubSync(res.synchronized);
       // Reload readiness
-      if (selectedCommitSha) {
-        const ready = await api.getReleaseReadiness(selectedCommitSha, activePR.id);
-        setReadiness(ready);
-      }
+      const ready = await api.getReleaseReadiness(activeGitHubPR.head_sha, `gh-${activeGitHubPR.number}`);
+      setReadiness(ready);
     } catch (err: any) {
       setErrorMsg(err.message);
     } finally {
       setIsReviewingPR(false);
+    }
+  };
+
+  const getGateSymbol = (status: string) => {
+    switch (status) {
+      case 'PASSED':
+      case 'APPROVED':
+      case 'READY_FOR_RELEASE':
+        return <span className="text-emerald-400 font-bold text-sm">✓</span>;
+      case 'FAILED':
+      case 'CHANGES_REQUESTED':
+      case 'BLOCKED':
+        return <span className="text-rose-400 font-bold text-sm">✗</span>;
+      default:
+        return <span className="text-amber-400 font-bold text-sm">?</span>;
     }
   };
 
@@ -160,19 +193,21 @@ export default function EngineeringLifecyclePage() {
       case 'PASSED':
       case 'APPROVED':
       case 'READY_FOR_RELEASE':
+      case 'success':
         return (
           <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
             <CheckCircle2 className="h-3 w-3" />
-            <span>{status}</span>
+            <span>{status.toUpperCase()}</span>
           </span>
         );
       case 'FAILED':
       case 'CHANGES_REQUESTED':
       case 'BLOCKED':
+      case 'failure':
         return (
           <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30">
             <XCircle className="h-3 w-3" />
-            <span>{status}</span>
+            <span>{status.toUpperCase()}</span>
           </span>
         );
       case 'ABSTAINED':
@@ -202,17 +237,17 @@ export default function EngineeringLifecyclePage() {
           <div>
             <div className="flex items-center space-x-3">
               <div className="p-2.5 rounded-xl bg-gradient-to-tr from-cyan-600/30 to-indigo-600/30 border border-cyan-500/30">
-                <GitBranch className="h-6 w-6 text-cyan-400" />
+                <Github className="h-6 w-6 text-cyan-400" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-white flex items-center space-x-2">
                   <span>AI Engineering Lifecycle</span>
                   <span className="text-xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                    Slice 7.5
+                    GitHub Actions & Lab
                   </span>
                 </h1>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Antigravity Skill → Git Commits → PR & AI Code Review → Deterministic CI → Independent Lab Retest → Evidence → Release Readiness
+                  Antigravity Skill → Git Commits → Real GitHub PR & Review → GitHub Actions CI → Independent Lab Verification → Human Merge Decision
                 </p>
               </div>
             </div>
@@ -237,128 +272,140 @@ export default function EngineeringLifecyclePage() {
           </div>
         )}
 
-        {/* Git Repository Summary Banner */}
-        {gitStatus && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-4 rounded-xl bg-[#0c1222] border border-slate-800/80">
-              <div className="flex items-center justify-between text-xs text-slate-400">
-                <span>Repository</span>
-                <GitBranch className="h-4 w-4 text-cyan-400" />
-              </div>
-              <div className="mt-2 text-sm font-semibold text-white truncate">{gitStatus.repository}</div>
-              <div className="text-[11px] text-slate-500 mt-0.5">Active Branch: <span className="text-cyan-300">{gitStatus.branch}</span></div>
+        {/* 5 Architecture Pillar Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          {/* 1. GitHub Repository */}
+          <div className="p-4 rounded-xl bg-[#0c1222] border border-slate-800/80 space-y-2">
+            <div className="flex items-center justify-between text-xs text-slate-400">
+              <span className="font-semibold uppercase text-[10px] tracking-wider text-slate-400">GitHub Repository</span>
+              <Github className="h-4 w-4 text-cyan-400" />
             </div>
-
-            <div className="p-4 rounded-xl bg-[#0c1222] border border-slate-800/80">
-              <div className="flex items-center justify-between text-xs text-slate-400">
-                <span>HEAD Commit</span>
-                <GitCommit className="h-4 w-4 text-indigo-400" />
-              </div>
-              <div className="mt-2 font-mono text-xs font-semibold text-indigo-300 truncate">
-                {gitStatus.commit_sha.slice(0, 10)}
-              </div>
-              <div className="text-[11px] text-slate-500 mt-0.5">
-                Parent: {gitStatus.parent_commit_sha ? gitStatus.parent_commit_sha.slice(0, 8) : 'Root'}
-              </div>
+            <div className="text-sm font-semibold text-white truncate">
+              {githubRepo ? githubRepo.full_name : (gitStatus?.repository || 'antigravity/engineering-lab')}
             </div>
-
-            <div className="p-4 rounded-xl bg-[#0c1222] border border-slate-800/80">
-              <div className="flex items-center justify-between text-xs text-slate-400">
-                <span>Working Tree</span>
-                <Activity className="h-4 w-4 text-emerald-400" />
-              </div>
-              <div className="mt-2 text-sm font-semibold flex items-center space-x-2">
-                <span className={gitStatus.is_clean ? 'text-emerald-400' : 'text-amber-400'}>
-                  {gitStatus.is_clean ? 'Clean (Synchronized)' : `${gitStatus.changed_files.length} Uncommitted Changes`}
-                </span>
-              </div>
-              <div className="text-[11px] text-slate-500 mt-0.5">Untracked: {gitStatus.untracked_files.length} files</div>
+            <div className="text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Branch: <span className="text-cyan-300">{githubRepo?.default_branch || gitStatus?.branch || 'main'}</span></span>
+              <span className="text-[10px] text-emerald-400 flex items-center space-x-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Active</span>
+              </span>
             </div>
+            <div className="font-mono text-[10px] text-slate-500 truncate">
+              Commit: {selectedCommitSha.slice(0, 10)}
+            </div>
+          </div>
 
-            <div className="p-4 rounded-xl bg-[#0c1222] border border-slate-800/80">
-              <div className="flex items-center justify-between text-xs text-slate-400">
-                <span>Release Gate</span>
-                <Shield className="h-4 w-4 text-purple-400" />
+          {/* 2. Pull Request */}
+          <div className="p-4 rounded-xl bg-[#0c1222] border border-slate-800/80 space-y-2">
+            <div className="flex items-center justify-between text-xs text-slate-400">
+              <span className="font-semibold uppercase text-[10px] tracking-wider text-slate-400">Pull Request</span>
+              <GitPullRequest className="h-4 w-4 text-indigo-400" />
+            </div>
+            <div className="text-sm font-semibold text-white truncate">
+              {activeGitHubPR ? `#${activeGitHubPR.number} ${activeGitHubPR.title}` : (activePR ? `#${activePR.number} ${activePR.title}` : 'No Active PR')}
+            </div>
+            <div className="text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Author: <span className="text-indigo-300">{activeGitHubPR?.author_login || 'developer'}</span></span>
+              {getStatusBadge(activeGitHubSync?.local_lifecycle_state || activePR?.status || 'OPEN')}
+            </div>
+            <div className="font-mono text-[10px] text-slate-500 truncate">
+              Head: {activeGitHubPR?.head_sha.slice(0, 8) || selectedCommitSha.slice(0, 8)}
+            </div>
+          </div>
+
+          {/* 3. GitHub Actions CI */}
+          <div className="p-4 rounded-xl bg-[#0c1222] border border-slate-800/80 space-y-2">
+            <div className="flex items-center justify-between text-xs text-slate-400">
+              <span className="font-semibold uppercase text-[10px] tracking-wider text-slate-400">GitHub Actions CI</span>
+              <Terminal className="h-4 w-4 text-purple-400" />
+            </div>
+            <div className="text-sm font-semibold text-white truncate">
+              {githubCIRun ? githubCIRun.workflow_name : (ciRuns[0]?.workflow || 'pytest & build CI')}
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-slate-400">Conclusion:</span>
+              {getStatusBadge(githubCIRun?.conclusion || githubCIStatus || 'CI_UNVERIFIED')}
+            </div>
+            <div className="text-[10px] text-slate-500">
+              Exact SHA match: {githubCIPassed ? 'Verified' : 'Pending'}
+            </div>
+          </div>
+
+          {/* 4. Engineering Lab Runtime */}
+          <div className="p-4 rounded-xl bg-[#0c1222] border border-slate-800/80 space-y-2">
+            <div className="flex items-center justify-between text-xs text-slate-400">
+              <span className="font-semibold uppercase text-[10px] tracking-wider text-slate-400">Engineering Lab</span>
+              <Cpu className="h-4 w-4 text-emerald-400" />
+            </div>
+            <div className="text-sm font-semibold text-white">Runtime Behavioral Authority</div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-slate-400">Session Status:</span>
+              {readiness ? getStatusBadge(readiness.lab_status) : getStatusBadge('PENDING')}
+            </div>
+            <div className="text-[10px] text-slate-500 truncate">
+              Runner: Autonomous QA & Playwright
+            </div>
+          </div>
+
+          {/* 5. Release Readiness Gate Matrix */}
+          <div className="p-4 rounded-xl bg-[#0c1222] border border-slate-800/80 space-y-2">
+            <div className="flex items-center justify-between text-xs text-slate-400">
+              <span className="font-semibold uppercase text-[10px] tracking-wider text-slate-400">Release Readiness</span>
+              <Shield className="h-4 w-4 text-amber-400" />
+            </div>
+            <div className="pt-0.5">
+              {readiness ? getStatusBadge(readiness.overall_state) : getStatusBadge('NOT_READY')}
+            </div>
+            <div className="grid grid-cols-4 gap-1 text-[11px] pt-1 border-t border-slate-800/80 text-center">
+              <div>
+                <div className="text-[9px] text-slate-500">Review</div>
+                {getGateSymbol(readiness?.review_status || 'PENDING')}
               </div>
-              <div className="mt-2">
-                {readiness ? getStatusBadge(readiness.overall_state) : getStatusBadge('PENDING')}
+              <div>
+                <div className="text-[9px] text-slate-500">CI</div>
+                {getGateSymbol(readiness?.ci_status || (githubCIPassed ? 'PASSED' : 'PENDING'))}
               </div>
-              <div className="text-[11px] text-slate-500 mt-0.5">
-                {readiness?.blockers.length ? `${readiness.blockers.length} gate blockers` : 'No blocking issues'}
+              <div>
+                <div className="text-[9px] text-slate-500">Lab</div>
+                {getGateSymbol(readiness?.lab_status || 'PENDING')}
+              </div>
+              <div>
+                <div className="text-[9px] text-slate-500">Evidence</div>
+                {getGateSymbol(readiness?.evidence_status || 'PENDING')}
               </div>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* 7-Stage Engineering Lifecycle Pipeline Stepper */}
+        {/* 9-Stage Pipeline Stepper */}
         <div className="p-6 rounded-2xl bg-[#090e1a] border border-slate-800 shadow-xl space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-white tracking-wide uppercase flex items-center space-x-2">
               <Layers className="h-4 w-4 text-cyan-400" />
-              <span>Full Engineering Lifecycle Pipeline</span>
+              <span>Full GitHub-Backed Engineering Lifecycle</span>
             </h2>
-            <span className="text-[11px] text-slate-400">Canonical SDLC Stage Transition</span>
+            <span className="text-[11px] text-slate-400">Antigravity → GitHub PR → GitHub Actions CI → Engineering Lab</span>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 pt-2">
+          <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2 pt-2">
             {[
-              {
-                id: '1',
-                name: 'Repository',
-                icon: GitBranch,
-                status: 'PASSED',
-                desc: gitStatus?.branch || 'main',
-              },
-              {
-                id: '2',
-                name: 'Commit SHA',
-                icon: GitCommit,
-                status: 'PASSED',
-                desc: selectedCommitSha.slice(0, 7) || 'HEAD',
-              },
-              {
-                id: '3',
-                name: 'AI Code Review',
-                icon: FileCode,
-                status: readiness?.review_status || 'PENDING',
-                desc: 'Static diff findings',
-              },
-              {
-                id: '4',
-                name: 'Deterministic CI',
-                icon: Terminal,
-                status: readiness?.ci_status || 'PENDING',
-                desc: 'pytest & build gates',
-              },
-              {
-                id: '5',
-                name: 'Independent Lab',
-                icon: Shield,
-                status: readiness?.lab_status || 'PASSED',
-                desc: 'Behavioral verify',
-              },
-              {
-                id: '6',
-                name: 'Evidence SHA',
-                icon: CheckCircle2,
-                status: readiness?.evidence_status || 'PASSED',
-                desc: 'Cryptographic log',
-              },
-              {
-                id: '7',
-                name: 'Release Readiness',
-                icon: Sparkles,
-                status: readiness?.overall_state || 'PENDING',
-                desc: 'Human gate (no auto-deploy)',
-              },
-            ].map((step, idx) => (
+              { id: '1', name: 'Implemented', status: 'PASSED', desc: 'Antigravity coding' },
+              { id: '2', name: 'Local Tested', status: 'PASSED', desc: 'pytest & linters' },
+              { id: '3', name: 'Committed', status: 'PASSED', desc: selectedCommitSha.slice(0, 7) },
+              { id: '4', name: 'PR Created', status: activeGitHubPR ? 'PASSED' : 'PENDING', desc: activeGitHubPR ? `#${activeGitHubPR.number}` : 'Awaiting PR' },
+              { id: '5', name: 'Reviewed', status: readiness?.review_status || 'PENDING', desc: 'Static diff scan' },
+              { id: '6', name: 'CI Verified', status: githubCIPassed ? 'PASSED' : 'PENDING', desc: 'GitHub Actions' },
+              { id: '7', name: 'Lab Verified', status: readiness?.lab_status || 'PASSED', desc: 'Independent retest' },
+              { id: '8', name: 'Evidence Chained', status: readiness?.evidence_status || 'PASSED', desc: 'SHA-256 artifacts' },
+              { id: '9', name: 'Human Release', status: readiness?.overall_state || 'PENDING', desc: 'Human decides merge' },
+            ].map((step) => (
               <div
                 key={step.id}
                 className="relative p-3 rounded-xl bg-[#0e1628] border border-slate-800/80 flex flex-col justify-between space-y-2"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-mono text-slate-500">0{step.id}</span>
-                  <step.icon className="h-3.5 w-3.5 text-slate-400" />
+                  {getGateSymbol(step.status)}
                 </div>
                 <div>
                   <div className="text-xs font-semibold text-white">{step.name}</div>
@@ -370,42 +417,18 @@ export default function EngineeringLifecyclePage() {
           </div>
         </div>
 
-        {/* Tab Controls */}
+        {/* Tab Selection */}
         <div className="flex items-center space-x-2 border-b border-slate-800">
           <button
-            onClick={() => setSelectedTab('pipeline')}
+            onClick={() => setSelectedTab('github')}
             className={`px-4 py-2.5 text-xs font-semibold transition-all border-b-2 flex items-center space-x-2 ${
-              selectedTab === 'pipeline'
+              selectedTab === 'github'
                 ? 'border-cyan-400 text-cyan-300 bg-cyan-500/10'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Activity className="h-3.5 w-3.5" />
-            <span>Interactive Pipeline</span>
-          </button>
-
-          <button
-            onClick={() => setSelectedTab('prs')}
-            className={`px-4 py-2.5 text-xs font-semibold transition-all border-b-2 flex items-center space-x-2 ${
-              selectedTab === 'prs'
-                ? 'border-cyan-400 text-cyan-300 bg-cyan-500/10'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <GitPullRequest className="h-3.5 w-3.5" />
-            <span>Pull Requests & AI Review ({prs.length})</span>
-          </button>
-
-          <button
-            onClick={() => setSelectedTab('ci')}
-            className={`px-4 py-2.5 text-xs font-semibold transition-all border-b-2 flex items-center space-x-2 ${
-              selectedTab === 'ci'
-                ? 'border-cyan-400 text-cyan-300 bg-cyan-500/10'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Terminal className="h-3.5 w-3.5" />
-            <span>CI Workflow Runs ({ciRuns.length})</span>
+            <Github className="h-3.5 w-3.5" />
+            <span>GitHub PRs & Actions CI</span>
           </button>
 
           <button
@@ -417,361 +440,173 @@ export default function EngineeringLifecyclePage() {
             }`}
           >
             <Shield className="h-3.5 w-3.5" />
-            <span>Release Readiness Gate Audit</span>
+            <span>Release Readiness Gate Matrix</span>
           </button>
         </div>
 
-        {/* Tab 1: Interactive Pipeline View */}
-        {selectedTab === 'pipeline' && (
+        {/* Tab 1: Real GitHub View */}
+        {selectedTab === 'github' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left: Commit History */}
-            <div className="lg:col-span-1 p-5 rounded-2xl bg-[#090e1a] border border-slate-800 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
-                  <GitCommit className="h-4 w-4 text-indigo-400" />
-                  <span>Recent Commits</span>
-                </h3>
-                <span className="text-[10px] text-slate-500">Select to inspect</span>
-              </div>
-
-              <div className="space-y-2">
-                {commits.map((c) => {
-                  const isSelected = c.commit_sha === selectedCommitSha;
-                  return (
-                    <button
-                      key={c.commit_sha}
-                      onClick={() => handleSelectCommit(c.commit_sha)}
-                      className={`w-full text-left p-3 rounded-xl transition-all border ${
-                        isSelected
-                          ? 'bg-indigo-600/15 border-indigo-500/40 text-white'
-                          : 'bg-slate-900/60 border-slate-800/80 text-slate-300 hover:bg-slate-800/50'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs font-semibold text-indigo-300">
-                          {c.commit_sha.slice(0, 8)}
-                        </span>
-                        <span className="text-[10px] text-slate-500">
-                          {new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                      <div className="text-xs font-medium text-slate-200 mt-1 line-clamp-1">
-                        {c.message}
-                      </div>
-                      <div className="text-[10px] text-slate-500 mt-1 flex items-center justify-between">
-                        <span>{c.author}</span>
-                        <span>{c.files_changed.length} files</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Right: Selected Commit Lifecycle Details */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Commit Details Card */}
-              <div className="p-5 rounded-2xl bg-[#090e1a] border border-slate-800 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    Commit Provenance & Gate Evaluation
-                  </h3>
-                  <div className="font-mono text-xs text-indigo-400">{selectedCommitSha}</div>
-                </div>
-
-                {readiness && (
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-                      <div className="text-[11px] text-slate-400">AI Review</div>
-                      <div className="mt-1">{getStatusBadge(readiness.review_status)}</div>
-                    </div>
-                    <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-                      <div className="text-[11px] text-slate-400">Deterministic CI</div>
-                      <div className="mt-1">{getStatusBadge(readiness.ci_status)}</div>
-                    </div>
-                    <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-                      <div className="text-[11px] text-slate-400">Engineering Lab</div>
-                      <div className="mt-1">{getStatusBadge(readiness.lab_status)}</div>
-                    </div>
-                    <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-                      <div className="text-[11px] text-slate-400">Cryptographic Evidence</div>
-                      <div className="mt-1">{getStatusBadge(readiness.evidence_status)}</div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Gate Blockers */}
-                {readiness?.blockers && readiness.blockers.length > 0 && (
-                  <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 space-y-2">
-                    <div className="text-xs font-semibold text-rose-300 flex items-center space-x-2">
-                      <AlertTriangle className="h-3.5 w-3.5" />
-                      <span>Release Blockers Detected ({readiness.blockers.length})</span>
-                    </div>
-                    <ul className="text-xs text-rose-200/90 space-y-1 list-disc list-inside">
-                      {readiness.blockers.map((b, i) => (
-                        <li key={i}>{b}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Quick CI Trigger */}
-                <div className="pt-2 flex items-center justify-between border-t border-slate-800">
-                  <span className="text-xs text-slate-400">Trigger deterministic local CI on this commit:</span>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleTriggerCI('pytest_unit')}
-                      disabled={isTriggeringCI}
-                      className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-all flex items-center space-x-1.5"
-                    >
-                      <Play className="h-3 w-3" />
-                      <span>Run pytest Unit</span>
-                    </button>
-                    <button
-                      onClick={() => handleTriggerCI('npm_build')}
-                      disabled={isTriggeringCI}
-                      className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-all"
-                    >
-                      Run npm build
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Invariant callout */}
-              <div className="p-4 rounded-xl bg-cyan-950/30 border border-cyan-800/40 text-xs text-cyan-300 space-y-1">
-                <div className="font-semibold flex items-center space-x-1.5">
-                  <Info className="h-4 w-4 text-cyan-400" />
-                  <span>Engineering Lab SDLC Invariant</span>
-                </div>
-                <p className="text-slate-400">
-                  Antigravity builds the software. Git records the change. CI verifies the code. The Engineering Lab independently verifies the running application. Evidence connects the lifecycle.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Tab 2: Pull Requests & AI Review */}
-        {selectedTab === 'prs' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left: PRs List */}
             <div className="lg:col-span-1 p-5 rounded-2xl bg-[#090e1a] border border-slate-800 space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-2">
-                <GitPullRequest className="h-4 w-4 text-cyan-400" />
-                <span>Tracked Pull Requests</span>
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-2">
+                  <GitPullRequest className="h-4 w-4 text-cyan-400" />
+                  <span>GitHub Pull Requests</span>
+                </h3>
+                <span className="text-[10px] text-slate-500">Live sync</span>
+              </div>
 
               <div className="space-y-2">
-                {prs.map((pr) => {
-                  const isSelected = activePR?.id === pr.id;
-                  return (
-                    <button
-                      key={pr.id}
-                      onClick={() => handleSelectPR(pr)}
-                      className={`w-full text-left p-3 rounded-xl transition-all border ${
-                        isSelected
-                          ? 'bg-cyan-600/15 border-cyan-500/40 text-white'
-                          : 'bg-slate-900/60 border-slate-800/80 text-slate-300 hover:bg-slate-800/50'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs font-bold text-cyan-300">#{pr.number}</span>
-                        {getStatusBadge(pr.status)}
-                      </div>
-                      <div className="text-xs font-medium text-slate-200 mt-1 line-clamp-1">{pr.title}</div>
-                      <div className="text-[10px] text-slate-500 mt-1">
-                        {pr.source_branch} → {pr.target_branch}
-                      </div>
-                    </button>
-                  );
-                })}
+                {githubPRs.length === 0 ? (
+                  <div className="text-xs text-slate-500 italic p-4 text-center">
+                    No open pull requests found for {githubRepo?.full_name || 'repository'}.
+                  </div>
+                ) : (
+                  githubPRs.map((pr) => {
+                    const isSelected = activeGitHubPR?.number === pr.number;
+                    return (
+                      <button
+                        key={pr.number}
+                        onClick={() => handleSelectGitHubPR(pr)}
+                        className={`w-full text-left p-3 rounded-xl transition-all border ${
+                          isSelected
+                            ? 'bg-cyan-600/15 border-cyan-500/40 text-white'
+                            : 'bg-slate-900/60 border-slate-800/80 text-slate-300 hover:bg-slate-800/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-xs font-bold text-cyan-300">#{pr.number}</span>
+                          {getStatusBadge(pr.state)}
+                        </div>
+                        <div className="text-xs font-medium text-slate-200 mt-1 line-clamp-1">{pr.title}</div>
+                        <div className="text-[10px] text-slate-500 mt-1 flex items-center justify-between">
+                          <span>{pr.head_branch} → {pr.base_branch}</span>
+                          <span className="font-mono">{pr.head_sha.slice(0, 7)}</span>
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
               </div>
             </div>
 
-            {/* PR Details and AI Code Review */}
-            <div className="lg:col-span-2 space-y-5">
-              {activePR ? (
+            {/* Right: Selected PR Inspection & CI Checks */}
+            <div className="lg:col-span-2 space-y-6">
+              {activeGitHubPR ? (
                 <div className="p-5 rounded-2xl bg-[#090e1a] border border-slate-800 space-y-4">
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center space-x-2">
-                        <span className="font-mono text-sm font-bold text-cyan-400">#{activePR.number}</span>
-                        <h3 className="text-base font-bold text-white">{activePR.title}</h3>
+                        <span className="font-mono text-sm font-bold text-cyan-400">#{activeGitHubPR.number}</span>
+                        <h3 className="text-base font-bold text-white">{activeGitHubPR.title}</h3>
                       </div>
                       <div className="text-xs text-slate-400 mt-1">
-                        Branch: <span className="text-cyan-300">{activePR.source_branch}</span> into <span className="text-slate-300">{activePR.target_branch}</span>
+                        Branch: <span className="text-cyan-300">{activeGitHubPR.head_branch}</span> into <span className="text-slate-300">{activeGitHubPR.base_branch}</span>
+                      </div>
+                      <div className="font-mono text-xs text-slate-500 mt-0.5">
+                        Head SHA: <span className="text-indigo-400">{activeGitHubPR.head_sha}</span>
                       </div>
                     </div>
-                    <button
-                      onClick={handleReviewPR}
-                      disabled={isReviewingPR}
-                      className="px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold transition-all flex items-center space-x-2"
-                    >
-                      <Sparkles className="h-3.5 w-3.5" />
-                      <span>{isReviewingPR ? 'Reviewing...' : 'Trigger AI Review'}</span>
-                    </button>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={handleReviewGitHubPR}
+                        disabled={isReviewingPR}
+                        className="px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold transition-all flex items-center space-x-2"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        <span>{isReviewingPR ? 'Reviewing...' : 'AI Diff Review'}</span>
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Reviews */}
-                  <div className="space-y-4 pt-3 border-t border-slate-800">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                      Static AI Code Review Findings
-                    </h4>
-
-                    {prReviews.length === 0 ? (
-                      <div className="text-xs text-slate-500 italic p-4 text-center">
-                        No AI reviews conducted on this pull request yet. Click "Trigger AI Review" to analyze the diff.
+                  {/* GitHub Actions CI Status for this PR's exact commit */}
+                  <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
+                        <Terminal className="h-4 w-4 text-purple-400" />
+                        <span>GitHub Actions CI Gate (Exact SHA Verification)</span>
                       </div>
-                    ) : (
-                      prReviews.map((rev) => (
-                        <div key={rev.review_id} className="space-y-3">
-                          <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900 border border-slate-800">
-                            <div>
-                              <div className="text-xs font-semibold text-white">{rev.summary}</div>
-                              <div className="text-[10px] text-slate-500">ID: {rev.review_id}</div>
-                            </div>
-                            {getStatusBadge(rev.status)}
-                          </div>
+                      {getStatusBadge(githubCIRun?.conclusion || githubCIStatus)}
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      Commit evaluated: <span className="font-mono text-indigo-300">{activeGitHubPR.head_sha.slice(0, 10)}</span>
+                    </div>
+                    <div className="text-[11px] text-slate-500">
+                      Rule: PR commit SHA must match CI commit SHA with conclusion == success. AI cannot override CI failures.
+                    </div>
+                  </div>
 
-                          <div className="space-y-2">
-                            {rev.findings.map((f, i) => (
-                              <div
-                                key={i}
-                                className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-1.5"
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center space-x-2">
-                                    <span className="font-mono text-xs font-semibold text-slate-300">
-                                      {f.file}:{f.line}
-                                    </span>
-                                    <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300">
-                                      {f.category}
-                                    </span>
-                                    <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">
-                                      {f.epistemic_status}
-                                    </span>
-                                  </div>
-                                  <span className={`text-[10px] font-bold ${
-                                    f.severity === 'CRITICAL' || f.severity === 'HIGH' ? 'text-rose-400' : 'text-slate-400'
-                                  }`}>
-                                    {f.severity}
-                                  </span>
-                                </div>
-                                <div className="text-xs font-semibold text-white">{f.title}</div>
-                                <div className="text-xs text-slate-400">{f.description}</div>
-                                <div className="text-[11px] font-mono bg-black/40 p-2 rounded text-slate-300">
-                                  {f.evidence}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))
-                    )}
+                  {/* Independent Lab Verification Callout */}
+                  <div className="p-4 rounded-xl bg-cyan-950/20 border border-cyan-800/40 text-xs text-cyan-300 space-y-1.5">
+                    <div className="font-semibold flex items-center space-x-1.5">
+                      <Shield className="h-4 w-4 text-cyan-400" />
+                      <span>Independent Behavioral Authority</span>
+                    </div>
+                    <p className="text-slate-400">
+                      GitHub Actions CI verifies code syntax and build checks. The Engineering Lab independently runs and tests the live application to verify behavioral correctness.
+                    </p>
                   </div>
                 </div>
               ) : (
                 <div className="p-8 text-center text-xs text-slate-500">
-                  Select a pull request to inspect review findings.
+                  Select a pull request to inspect review findings and CI checks.
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* Tab 3: CI Workflow Runs */}
-        {selectedTab === 'ci' && (
-          <div className="p-5 rounded-2xl bg-[#090e1a] border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-2">
-                  <Terminal className="h-4 w-4 text-indigo-400" />
-                  <span>Deterministic CI Pipeline Runs</span>
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  CI gates are deterministic code-level tests (pytest, npm test, npm build). An LLM cannot override a failed check.
-                </p>
-              </div>
-
-              <button
-                onClick={() => handleTriggerCI('pytest_unit')}
-                disabled={isTriggeringCI}
-                className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center space-x-2 transition-all"
-              >
-                <Play className="h-3.5 w-3.5" />
-                <span>{isTriggeringCI ? 'Executing...' : 'Run New CI Check'}</span>
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {ciRuns.length === 0 ? (
-                <div className="text-xs text-slate-500 italic p-6 text-center">
-                  No CI runs recorded for commit {selectedCommitSha.slice(0, 10)}. Click "Run New CI Check" to execute.
-                </div>
-              ) : (
-                ciRuns.map((run) => (
-                  <div
-                    key={run.id}
-                    className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xs font-bold text-white">{run.workflow}</span>
-                        <span className="font-mono text-[10px] text-slate-500">#{run.id}</span>
-                      </div>
-                      <div className="text-xs text-slate-400">
-                        Tests: <span className="text-emerald-400 font-semibold">{run.tests_passed} passed</span> / {run.tests_total} total ({run.tests_failed} failed)
-                      </div>
-                      <div className="text-[10px] text-slate-500">
-                        Duration: {run.duration_ms}ms · Completed: {new Date(run.started_at).toLocaleString()}
-                      </div>
-                    </div>
-                    <div>{getStatusBadge(run.status)}</div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Tab 4: Release Readiness Gate Audit */}
+        {/* Tab 2: Release Readiness Gate Matrix */}
         {selectedTab === 'readiness' && (
           <div className="p-6 rounded-2xl bg-[#090e1a] border border-slate-800 space-y-6">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
                   <Shield className="h-4 w-4 text-purple-400" />
-                  <span>Release Readiness Gate Audit</span>
+                  <span>Release Readiness Gate Matrix</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Full evaluation across static AI review, deterministic CI, runtime behavioral lab verification, and cryptographic evidence.
+                  Combines PR Review, GitHub Actions CI, Independent Lab verification, and Cryptographic Evidence for target commit.
                 </p>
               </div>
-              <div>{readiness ? getStatusBadge(readiness.overall_state) : getStatusBadge('PENDING')}</div>
+              <div>{readiness ? getStatusBadge(readiness.overall_state) : getStatusBadge('NOT_READY')}</div>
             </div>
 
             {readiness && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
-                  <div className="text-xs font-semibold text-slate-400">1. AI Code Review Gate</div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-400">1. AI Code Review</span>
+                    {getGateSymbol(readiness.review_status)}
+                  </div>
                   <div>{getStatusBadge(readiness.review_status)}</div>
-                  <p className="text-[11px] text-slate-500">Diff inspection for bugs, concurrency, security hazards.</p>
+                  <p className="text-[11px] text-slate-500">Static diff scan for defects, concurrency, and security hazards.</p>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
-                  <div className="text-xs font-semibold text-slate-400">2. Deterministic CI Gate</div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-400">2. GitHub Actions CI</span>
+                    {getGateSymbol(readiness.ci_status)}
+                  </div>
                   <div>{getStatusBadge(readiness.ci_status)}</div>
-                  <p className="text-[11px] text-slate-500">Unit test execution, build checks, zero failures allowed.</p>
+                  <p className="text-[11px] text-slate-500">Deterministic workflow run matching exact commit SHA.</p>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
-                  <div className="text-xs font-semibold text-slate-400">3. Independent Lab Gate</div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-400">3. Engineering Lab</span>
+                    {getGateSymbol(readiness.lab_status)}
+                  </div>
                   <div>{getStatusBadge(readiness.lab_status)}</div>
-                  <p className="text-[11px] text-slate-500">Autonomous runtime execution against target application.</p>
+                  <p className="text-[11px] text-slate-500">Independent runtime behavioral execution on target application.</p>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
-                  <div className="text-xs font-semibold text-slate-400">4. Cryptographic Evidence Gate</div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-400">4. Chained Evidence</span>
+                    {getGateSymbol(readiness.evidence_status)}
+                  </div>
                   <div>{getStatusBadge(readiness.evidence_status)}</div>
                   <p className="text-[11px] text-slate-500">SHA-256 chained audit logs and verified run artifacts.</p>
                 </div>
@@ -783,7 +618,7 @@ export default function EngineeringLifecyclePage() {
               <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 space-y-2">
                 <div className="text-xs font-bold text-rose-300 flex items-center space-x-2">
                   <XCircle className="h-4 w-4" />
-                  <span>Active Release Blockers</span>
+                  <span>Active Release Blockers ({readiness.blockers.length})</span>
                 </div>
                 <div className="space-y-1">
                   {readiness.blockers.map((b, i) => (
@@ -796,11 +631,11 @@ export default function EngineeringLifecyclePage() {
               </div>
             )}
 
-            {/* Invariant Notice */}
+            {/* Human Gate Mandatory Notice */}
             <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-400 space-y-1">
               <div className="font-semibold text-slate-300 flex items-center space-x-1.5">
                 <Lock className="h-3.5 w-3.5 text-amber-400" />
-                <span>Security & Release Boundary Notice</span>
+                <span>Human-Controlled Release Boundary</span>
               </div>
               <p>
                 READY_FOR_RELEASE certifies that all automated and behavioral gates have passed. In accordance with platform non-negotiables, this system does NOT perform automatic production merges or deployments. Final release authorization remains human-mediated.

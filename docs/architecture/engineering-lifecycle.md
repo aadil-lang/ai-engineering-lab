@@ -102,9 +102,9 @@ A common failure mode in AI-assisted development is conflating static code exami
 
 ---
 
-## 5. Control Plane Tool Registry (16 Canonical Tools)
+## 5. Control Plane Tool Registry (22 Canonical Tools)
 
-The control plane registry cleanly partitions into 10 reliability tools and 6 lifecycle tools:
+The control plane registry cleanly partitions into 10 reliability tools, 6 local lifecycle tools, and 6 GitHub integration tools:
 
 ### Reliability Tools (Slice 7.2 & 7.3)
 1. `inspect_application` (Read)
@@ -118,7 +118,7 @@ The control plane registry cleanly partitions into 10 reliability tools and 6 li
 9. `get_evidence` (Read)
 10. `get_reliability_summary` (Read)
 
-### Lifecycle Integration Tools (Slice 7.5)
+### Local Lifecycle Integration Tools (Slice 7.5)
 11. `get_repository_status` (Read)
 12. `get_git_diff` (Read)
 13. `get_commit` (Read)
@@ -126,4 +126,24 @@ The control plane registry cleanly partitions into 10 reliability tools and 6 li
 15. `get_ci_status` (Read)
 16. `get_release_readiness` (Read)
 
+### GitHub Integration Tools (Slice 7.6)
+17. `get_github_repository` (Read)
+18. `get_github_pull_request` (Read)
+19. `get_github_pull_request_diff` (Read)
+20. `get_github_ci_status` (Read)
+21. `get_github_checks` (Read)
+22. `get_github_pr_review` (Read)
+
 Zero tools provide arbitrary shell execution, database manipulation, or unvetted filesystem writes.
+
+---
+
+## 6. GitHub Actions CI & Stale Commit Invalidation (Slice 7.6)
+
+In GitHub mode:
+1. **GitHub Actions as CI Authority**: CI verification requires an actual completed GitHub Actions workflow run matching the PR's exact `head_commit_sha` with `conclusion == success`.
+2. **Stale Commit Invalidation**: When a PR is updated with a new commit SHA:
+   - Previous commit-specific verifications (CI, AI review, Lab verification) are strictly invalidated.
+   - Verification results NEVER leak across commit boundaries.
+3. **Idempotent PR Status Comments**: Lab evaluation results are published to PR discussions using structured, deterministic Markdown comments tagged with an HTML idempotency comment (`<!-- antigravity-idempotency: ... -->`).
+4. **Human Decision Invariant**: `READY_FOR_RELEASE` indicates all gates passed on the target SHA; automated merge and automated production deployment remain strictly prohibited.

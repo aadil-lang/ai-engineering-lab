@@ -1282,5 +1282,66 @@ export interface ReleaseReadinessModel {
   generated_at: string;
 }
 
+// Slice 7.6: Real GitHub Integration Models
+export interface GitHubRepositoryModel {
+  github_id: number;
+  owner: string;
+  name: string;
+  full_name: string;
+  default_branch: string;
+  is_private: boolean;
+  html_url: string;
+  description?: string | null;
+}
+
+export interface GitHubPullRequestModel {
+  github_id: number;
+  number: number;
+  title: string;
+  body: string;
+  state: 'open' | 'closed';
+  head_branch: string;
+  base_branch: string;
+  head_sha: string;
+  base_sha: string;
+  author_login: string;
+  html_url: string;
+  is_draft: boolean;
+  created_at: string;
+  updated_at: string;
+  merged_at?: string | null;
+  closed_at?: string | null;
+}
+
+export interface SynchronizedPRModel {
+  repository: string;
+  pull_request_number: number;
+  head_branch: string;
+  base_branch: string;
+  head_commit_sha: string;
+  base_commit_sha: string;
+  github_state: string;
+  local_lifecycle_state: string;
+  created_at: string;
+  updated_at: string;
+  last_verified_commit_sha?: string | null;
+  ci_verified_commit_sha?: string | null;
+}
+
+export interface GitHubWorkflowRunModel {
+  github_run_id: number;
+  workflow_name: string;
+  head_sha: string;
+  head_branch: string;
+  status: 'queued' | 'in_progress' | 'completed';
+  conclusion?: 'success' | 'failure' | 'cancelled' | 'timed_out' | 'skipped' | 'neutral' | null;
+  html_url: string;
+  started_at: string;
+  completed_at?: string | null;
+  duration_ms: number;
+  jobs_summary?: string | null;
+}
+
+
 
 

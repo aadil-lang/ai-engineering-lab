@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 from pydantic import BaseModel, Field
 
 from backend.app.git.models import GitStatus, GitCommit, GitDiff
@@ -61,3 +61,70 @@ class GetReleaseReadinessRequest(BaseModel):
 
 class GetReleaseReadinessResponse(BaseModel):
     readiness: ReleaseReadiness
+
+
+# 7. get_github_repository
+class GetGitHubRepositoryRequest(BaseModel):
+    repository: str = Field(description="Full GitHub repository name: owner/repo")
+
+
+class GetGitHubRepositoryResponse(BaseModel):
+    repository: Any
+
+
+# 8. get_github_pull_request
+class GetGitHubPullRequestRequest(BaseModel):
+    repository: str = Field(description="Full GitHub repository name: owner/repo")
+    pr_number: int = Field(description="Pull request number")
+
+
+class GetGitHubPullRequestResponse(BaseModel):
+    pull_request: Any
+    synchronized: Optional[Any] = None
+
+
+# 9. get_github_pull_request_diff
+class GetGitHubPullRequestDiffRequest(BaseModel):
+    repository: str = Field(description="Full GitHub repository name: owner/repo")
+    pr_number: int = Field(description="Pull request number")
+
+
+class GetGitHubPullRequestDiffResponse(BaseModel):
+    diff_text: str
+    files: list[Any] = Field(default_factory=list)
+
+
+# 10. get_github_ci_status
+class GetGitHubCIStatusRequest(BaseModel):
+    repository: str = Field(description="Full GitHub repository name: owner/repo")
+    commit_sha: str = Field(description="Commit SHA to verify CI for")
+
+
+class GetGitHubCIStatusResponse(BaseModel):
+    commit_sha: str
+    gate_status: str
+    passed: bool
+    latest_run: Optional[Any] = None
+
+
+# 11. get_github_checks
+class GetGitHubChecksRequest(BaseModel):
+    repository: str = Field(description="Full GitHub repository name: owner/repo")
+    commit_sha: str = Field(description="Commit SHA to list checks for")
+
+
+class GetGitHubChecksResponse(BaseModel):
+    commit_sha: str
+    checks: list[Any] = Field(default_factory=list)
+
+
+# 12. get_github_pr_review
+class GetGitHubPRReviewRequest(BaseModel):
+    repository: str = Field(description="Full GitHub repository name: owner/repo")
+    pr_number: int = Field(description="Pull request number to review")
+
+
+class GetGitHubPRReviewResponse(BaseModel):
+    review: PRReview
+    synchronized: Any
+

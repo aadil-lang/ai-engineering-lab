@@ -97,6 +97,12 @@ The Engineering Lab exposes 10 canonical tools via Model Context Protocol (MCP).
 | `get_pull_request` | `READ_ONLY` | Query PR branches, status, and AI review findings | Ensure changes requested are addressed before CI/Lab gates. |
 | `get_ci_status` | `READ_ONLY` | Inspect deterministic CI run outcomes and logs | CI verifies code-level units; CI pass does NOT imply Lab pass. |
 | `get_release_readiness` | `READ_ONLY` | Evaluate Review, CI, Lab, and Evidence release gates | READY_FOR_RELEASE means gates passed; does NOT trigger deploy. |
+| `get_github_repository` | `READ_ONLY` | Inspect remote GitHub repository metadata and branches | Inspect origin repository connection and default branch. |
+| `get_github_pull_request` | `READ_ONLY` | Query real GitHub PR, exact head SHA, and synchronized state | Invalidate prior commit verification if head SHA changed. |
+| `get_github_pull_request_diff` | `READ_ONLY` | Fetch raw PR diff and changed files from GitHub API | Review operations must operate on real PR diffs. |
+| `get_github_ci_status` | `READ_ONLY` | Verify GitHub Actions workflow runs for exact head commit | CI conclusion must be success on exact commit SHA. |
+| `get_github_checks` | `READ_ONLY` | List commit status check runs from GitHub | Inspect granular check statuses. |
+| `get_github_pr_review` | `READ_ONLY` | Run static AI code review on GitHub PR diff | Classify findings into OBSERVED, INFERRED, HYPOTHESIS. |
 
 > **Security Restriction**: Only canonical read-oriented tools are exposed. No arbitrary shell, SQL, filesystem, credential, merge, or deployment tools.
 
@@ -118,15 +124,21 @@ If the Engineering Lab returns:
 
 ---
 
-## 7-Stage Definition of "Done"
+## 9-Stage Definition of "Done"
 
-Do not conflate implementation completion with verification completion. Every engineering task follows this strict 7-stage lifecycle progression:
+Do not conflate implementation completion with verification completion. Every engineering task follows this strict 9-stage lifecycle progression:
 
 ```text
 [ IMPLEMENTED ]
        │
        ▼
 [ LOCAL_TESTED ]
+       │
+       ▼
+ [ COMMITTED ]
+       │
+       ▼
+ [ PR_CREATED ]
        │
        ▼
   [ REVIEWED ]
@@ -144,13 +156,25 @@ Do not conflate implementation completion with verification completion. Every en
 [ READY_FOR_HUMAN_RELEASE / COMPLETE ]
 ```
 
-1. **IMPLEMENTED**: Code changes are authored in Antigravity and committed to a Git branch.
+1. **IMPLEMENTED**: Code changes are authored in Antigravity.
 2. **LOCAL_TESTED**: Local developer unit tests pass on the development machine.
-3. **REVIEWED**: AI Code Review has evaluated the PR diff with no blocking critical/high findings.
-4. **CI_VERIFIED**: Deterministic CI pipeline (unit tests, build checks) executes and passes 100%.
-5. **LAB_VERIFIED**: Independent Engineering Lab behavioral test session executes against the running application.
-6. **EVIDENCE_RECORDED**: Forensic artifacts, run logs, and SHA-256 digests are retrieved and linked.
-7. **READY_FOR_HUMAN_RELEASE (COMPLETE)**: Release readiness evaluator confirms all gates passed. Human approval is required before merge or deployment.
+3. **COMMITTED**: Code changes committed to a Git branch with clean parent provenance.
+4. **PR_CREATED**: Real GitHub Pull Request opened or synchronized.
+5. **REVIEWED**: Static AI Code Review has evaluated the actual PR diff with no blocking critical/high findings.
+6. **CI_VERIFIED**: GitHub Actions CI workflow runs execute and conclude with `success` on the exact head commit SHA.
+7. **LAB_VERIFIED**: Independent Engineering Lab behavioral test session executes against the running application.
+8. **EVIDENCE_RECORDED**: Forensic artifacts, run logs, and SHA-256 digests are retrieved and linked.
+9. **READY_FOR_HUMAN_RELEASE (COMPLETE)**: Release readiness evaluator confirms all gates passed. Human approval is required before merge or deployment.
+
+### Explicit Agent Directives
+- **Inspect exact PR / Head SHA**: Always verify that CI runs and Lab tests match the exact head commit SHA of the PR.
+- **Never assume CI passed**: An agent claim is non-binding; query `get_github_ci_status` directly.
+- **Never assume runtime verification passed**: Code-level CI pass does NOT imply behavioral correctness.
+- **Run Lab verification after CI passes**: Only execute behavioral test runs once deterministic CI build gates succeed.
+- **Preserve evidence**: Record cryptographic artifact digests and test session IDs.
+- **Distinguish observations from interpretations**: Clearly label syntax evidence as `OBSERVED`, concurrency risks as `INFERRED`, and speculative side effects as `HYPOTHESIS`.
+- **Stop when required evidence is unavailable**: Return `INSUFFICIENT_DATA` or `NOT_READY` rather than guessing.
+- **Never merge automatically**: The merge decision belongs strictly to the human engineering authority.
 
 ---
 
@@ -163,10 +187,11 @@ Task: <Engineering objective>
 Repository: <Repository name>
 Branch: <Active Git branch>
 Commit: <Target commit SHA>
+PR: <GitHub PR number and URL>
 Changes: <Changed files and summary of modifications>
 Local Tests: <Local test execution command and result>
 Review: <AI Code Review status and finding counts>
-CI: <Deterministic CI run ID, workflow, and outcome>
+CI: <GitHub Actions CI run ID, workflow, and outcome>
 Lab Verification: <Independent Engineering Lab session ID and pass/fail counts>
 Evidence: <Specific run ID, HTTP status code, or SHA-256 artifact digest>
 Release Readiness: <NOT_READY | BLOCKED | READY_FOR_RELEASE>

@@ -45,9 +45,12 @@ class ReleaseReadinessService:
         pr_id: Optional[str] = None,
         lab_verified: Optional[bool] = None,
         lab_abstained: bool = False,
+        github_repo: Optional[str] = None,
+        github_actions_service: Optional[Any] = None,
     ) -> ReleaseReadiness:
         """
         Evaluates release readiness gates for a specific commit and optional PR.
+        Supports both local CI and real GitHub Actions CI verification.
         """
         blockers: list[str] = []
 
@@ -70,21 +73,38 @@ class ReleaseReadinessService:
         else:
             review_gate = GateStatus.SKIPPED
 
-        # 2. Evaluate CI Gate
+        # 2. Evaluate CI Gate (Local or GitHub Actions)
         ci_gate = GateStatus.PENDING
-        latest_ci = self.repo.get_latest_ci_run_for_commit(commit_sha)
-        if latest_ci:
-            if latest_ci.status == CIStatus.PASSED:
+        if github_actions_service and github_repo:
+            passed, gh_status, run = github_actions_service.verify_ci_gate(github_repo, commit_sha)
+            if passed:
                 ci_gate = GateStatus.PASSED
-            elif latest_ci.status == CIStatus.FAILED:
+            elif gh_status == "FAILED":
                 ci_gate = GateStatus.FAILED
-                blockers.append(f"Deterministic CI workflow '{latest_ci.workflow}' failed ({latest_ci.tests_failed} failures).")
+                blockers.append(f"GitHub Actions CI workflow '{run.workflow_name if run else 'CI'}' failed on commit {commit_sha[:8]}.")
+            elif gh_status == "CANCELLED":
+                ci_gate = GateStatus.FAILED
+                blockers.append(f"GitHub Actions CI workflow was cancelled on commit {commit_sha[:8]}.")
+            elif gh_status in ("IN_PROGRESS", "QUEUED"):
+                ci_gate = GateStatus.PENDING
+                blockers.append(f"GitHub Actions CI is currently {gh_status.lower()} on commit {commit_sha[:8]}.")
             else:
                 ci_gate = GateStatus.PENDING
-                blockers.append(f"CI workflow '{latest_ci.workflow}' is currently {latest_ci.status.value}.")
+                blockers.append(f"No completed successful GitHub Actions CI run found for commit {commit_sha[:8]}.")
         else:
-            ci_gate = GateStatus.PENDING
-            blockers.append("No CI run recorded for target commit.")
+            latest_ci = self.repo.get_latest_ci_run_for_commit(commit_sha)
+            if latest_ci:
+                if latest_ci.status == CIStatus.PASSED:
+                    ci_gate = GateStatus.PASSED
+                elif latest_ci.status == CIStatus.FAILED:
+                    ci_gate = GateStatus.FAILED
+                    blockers.append(f"Deterministic CI workflow '{latest_ci.workflow}' failed ({latest_ci.tests_failed} failures).")
+                else:
+                    ci_gate = GateStatus.PENDING
+                    blockers.append(f"CI workflow '{latest_ci.workflow}' is currently {latest_ci.status.value}.")
+            else:
+                ci_gate = GateStatus.PENDING
+                blockers.append("No CI run recorded for target commit.")
 
         # 3. Evaluate Engineering Lab Gate
         lab_gate = GateStatus.PENDING

@@ -118,15 +118,27 @@ Possible Overall States:
 
 ## 5. Antigravity Skill Workflow Integration
 
-Antigravity agents invoke tools through `.agents/skills/engineering-lab/SKILL.md` following the 7-stage Definition of Done:
+Antigravity agents invoke tools through `.agents/skills/engineering-lab/SKILL.md` following the Definition of Done:
 
 ```text
 IMPLEMENTED
   → LOCAL_TESTED
-    → REVIEWED
-      → CI_VERIFIED
-        → LAB_VERIFIED
-          → EVIDENCE_RECORDED
-            → READY_FOR_HUMAN_RELEASE
+    → COMMITTED
+      → PR_CREATED
+        → REVIEWED
+          → CI_VERIFIED
+            → LAB_VERIFIED
+              → EVIDENCE_RECORDED
+                → READY_FOR_HUMAN_RELEASE
 ```
 Agents record structured engineering facts, actions, and evidence hashes in `references/engineering-trace.md` without exposing hidden chain-of-thought tokens.
+
+---
+
+## 6. Real GitHub Mode (Slice 7.6)
+
+For teams and pipelines operating with remote GitHub repositories and GitHub Actions CI:
+- See the dedicated [GitHub Integration Guide](file:///c:/Users/HP/.gemini/antigravity-ide/scratch/New%20project/docs/integrations/github.md) for full configuration, webhook security, and Actions CI details.
+- In GitHub mode, local simulated CI is replaced with real GitHub Actions workflow runs matching the evaluated commit SHA.
+- Verification on previous commit SHAs is strictly invalidated when new commits are pushed to the PR.
+

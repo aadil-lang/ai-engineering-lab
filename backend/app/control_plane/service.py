@@ -60,6 +60,18 @@ from backend.app.models.lifecycle_tools import (
     GetCIStatusResponse,
     GetReleaseReadinessRequest,
     GetReleaseReadinessResponse,
+    GetGitHubRepositoryRequest,
+    GetGitHubRepositoryResponse,
+    GetGitHubPullRequestRequest,
+    GetGitHubPullRequestResponse,
+    GetGitHubPullRequestDiffRequest,
+    GetGitHubPullRequestDiffResponse,
+    GetGitHubCIStatusRequest,
+    GetGitHubCIStatusResponse,
+    GetGitHubChecksRequest,
+    GetGitHubChecksResponse,
+    GetGitHubPRReviewRequest,
+    GetGitHubPRReviewResponse,
 )
 from backend.app.control_plane.context import ToolInvocationContext
 from backend.app.control_plane.errors import (
@@ -92,6 +104,7 @@ class ReliabilityControlPlane:
         self,
         db_path: str = "backend/data/reliability_platform.db",
         enable_lifecycle_tools: bool = False,
+        enable_github_tools: bool = False,
     ):
         self.db_path = db_path
         self.repo = SQLiteRepository(db_path=db_path)
@@ -133,8 +146,17 @@ class ReliabilityControlPlane:
         self.ci_service = None
         self.release_service = None
 
+        # GitHub Services
+        self.github_client = None
+        self.github_sync_repo = None
+        self.github_pr_service = None
+        self.github_actions_service = None
+
         if enable_lifecycle_tools or os.environ.get("ENABLE_LIFECYCLE_TOOLS") == "1":
             self.register_lifecycle_tools()
+
+        if enable_github_tools or os.environ.get("ENABLE_GITHUB_TOOLS") == "1":
+            self.register_github_tools()
 
     def _register_all_tools(self):
         """Registers the 10 canonical agent tools into the registry."""
@@ -932,4 +954,191 @@ class ReliabilityControlPlane:
             self.release_service = ReleaseReadinessService(control_plane=self)
         readiness = self.release_service.evaluate_readiness(commit_sha=req.commit_sha, pr_id=req.pr_id)
         return GetReleaseReadinessResponse(readiness=readiness)
+
+    # -------------------------------------------------------------------------
+    # Slice 7.6 — Real GitHub Lifecycle Integration Tools
+    # -------------------------------------------------------------------------
+
+    def register_github_tools(
+        self,
+        github_client=None,
+        github_sync_repo=None,
+        github_pr_service=None,
+        github_actions_service=None,
+    ):
+        """Registers the 6 canonical GitHub lifecycle tools into the registry."""
+        from backend.app.github.client import GitHubClient
+        from backend.app.github.repository import GitHubSyncRepository
+        from backend.app.github.pr_service import GitHubPRService
+        from backend.app.github.actions_service import GitHubActionsService
+
+        self.github_client = github_client or GitHubClient()
+        self.github_sync_repo = github_sync_repo or GitHubSyncRepository(db_path=self.db_path)
+        self.github_pr_service = github_pr_service or GitHubPRService(
+            client=self.github_client,
+            repository=self.github_sync_repo,
+        )
+        self.github_actions_service = github_actions_service or GitHubActionsService(
+            client=self.github_client,
+            repository=self.github_sync_repo,
+        )
+
+        # Tool 17: get_github_repository (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_github_repository",
+                description="Get authenticated metadata for a real GitHub repository (owner, default branch, privacy).",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetGitHubRepositoryRequest,
+                response_model=GetGitHubRepositoryResponse,
+                handler=self.get_github_repository,
+                version="1.0",
+            )
+        )
+
+        # Tool 18: get_github_pull_request (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_github_pull_request",
+                description="Get real GitHub pull request details, exact head SHA, base branch, and synchronized lifecycle state.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetGitHubPullRequestRequest,
+                response_model=GetGitHubPullRequestResponse,
+                handler=self.get_github_pull_request,
+                version="1.0",
+            )
+        )
+
+        # Tool 19: get_github_pull_request_diff (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_github_pull_request_diff",
+                description="Get the raw unified diff and list of changed files for a real GitHub PR.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetGitHubPullRequestDiffRequest,
+                response_model=GetGitHubPullRequestDiffResponse,
+                handler=self.get_github_pull_request_diff,
+                version="1.0",
+            )
+        )
+
+        # Tool 20: get_github_ci_status (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_github_ci_status",
+                description="Get GitHub Actions CI verification status for the exact commit SHA of a PR.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetGitHubCIStatusRequest,
+                response_model=GetGitHubCIStatusResponse,
+                handler=self.get_github_ci_status,
+                version="1.0",
+            )
+        )
+
+        # Tool 21: get_github_checks (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_github_checks",
+                description="Get check runs and conclusion status for a specific commit SHA on GitHub.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetGitHubChecksRequest,
+                response_model=GetGitHubChecksResponse,
+                handler=self.get_github_checks,
+                version="1.0",
+            )
+        )
+
+        # Tool 22: get_github_pr_review (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_github_pr_review",
+                description="Execute static AI code review on the actual GitHub PR diff and synchronize lifecycle state.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetGitHubPRReviewRequest,
+                response_model=GetGitHubPRReviewResponse,
+                handler=self.get_github_pr_review,
+                version="1.0",
+            )
+        )
+
+    def get_github_repository(
+        self,
+        req: GetGitHubRepositoryRequest,
+        context: ToolInvocationContext,
+    ) -> GetGitHubRepositoryResponse:
+        """Tool 17: get_github_repository."""
+        if not self.github_client:
+            from backend.app.github.client import GitHubClient
+            self.github_client = GitHubClient()
+        repo = self.github_client.get_repository(req.repository)
+        return GetGitHubRepositoryResponse(repository=repo)
+
+    def get_github_pull_request(
+        self,
+        req: GetGitHubPullRequestRequest,
+        context: ToolInvocationContext,
+    ) -> GetGitHubPullRequestResponse:
+        """Tool 18: get_github_pull_request."""
+        if not self.github_pr_service:
+            from backend.app.github.pr_service import GitHubPRService
+            self.github_pr_service = GitHubPRService()
+        synced = self.github_pr_service.sync_pull_request(req.repository, req.pr_number)
+        gh_pr = self.github_pr_service.client.get_pull_request(req.repository, req.pr_number)
+        return GetGitHubPullRequestResponse(pull_request=gh_pr, synchronized=synced)
+
+    def get_github_pull_request_diff(
+        self,
+        req: GetGitHubPullRequestDiffRequest,
+        context: ToolInvocationContext,
+    ) -> GetGitHubPullRequestDiffResponse:
+        """Tool 19: get_github_pull_request_diff."""
+        if not self.github_client:
+            from backend.app.github.client import GitHubClient
+            self.github_client = GitHubClient()
+        diff_text = self.github_client.get_pull_request_diff(req.repository, req.pr_number)
+        files = self.github_client.get_pull_request_files(req.repository, req.pr_number)
+        return GetGitHubPullRequestDiffResponse(diff_text=diff_text, files=files)
+
+    def get_github_ci_status(
+        self,
+        req: GetGitHubCIStatusRequest,
+        context: ToolInvocationContext,
+    ) -> GetGitHubCIStatusResponse:
+        """Tool 20: get_github_ci_status."""
+        if not self.github_actions_service:
+            from backend.app.github.actions_service import GitHubActionsService
+            self.github_actions_service = GitHubActionsService()
+        passed, status, run = self.github_actions_service.verify_ci_gate(req.repository, req.commit_sha)
+        return GetGitHubCIStatusResponse(
+            commit_sha=req.commit_sha,
+            gate_status=status,
+            passed=passed,
+            latest_run=run,
+        )
+
+    def get_github_checks(
+        self,
+        req: GetGitHubChecksRequest,
+        context: ToolInvocationContext,
+    ) -> GetGitHubChecksResponse:
+        """Tool 21: get_github_checks."""
+        if not self.github_client:
+            from backend.app.github.client import GitHubClient
+            self.github_client = GitHubClient()
+        checks = self.github_client.list_check_runs(req.repository, req.commit_sha)
+        return GetGitHubChecksResponse(commit_sha=req.commit_sha, checks=checks)
+
+    def get_github_pr_review(
+        self,
+        req: GetGitHubPRReviewRequest,
+        context: ToolInvocationContext,
+    ) -> GetGitHubPRReviewResponse:
+        """Tool 22: get_github_pr_review."""
+        if not self.github_pr_service:
+            from backend.app.github.pr_service import GitHubPRService
+            self.github_pr_service = GitHubPRService()
+        review = self.github_pr_service.review_pull_request(req.repository, req.pr_number)
+        synced = self.github_pr_service.repo.get_synced_pr(req.repository, req.pr_number)
+        return GetGitHubPRReviewResponse(review=review, synchronized=synced)
+
 
