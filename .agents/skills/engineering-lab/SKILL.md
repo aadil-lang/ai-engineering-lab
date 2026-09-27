@@ -116,22 +116,38 @@ The Engineering Lab exposes 10 canonical tools via Model Context Protocol (MCP).
 | `get_prompt_regressions` | `READ_ONLY` | Detect case regressions between prompt versions | Surfacing critical regressions is mandatory. |
 | `get_prompt_diagnosis` | `READ_ONLY` | Get multi-layer causal diagnosis for AI failure | Distinguishes PROMPT, MODEL, RETRIEVAL, TOOL, etc. |
 | `get_prompt_evidence` | `READ_ONLY` | Retrieve execution record and grounding evidence | Verify claim-level evidence and execution hashes. |
+| `list_recommendations` | `READ_ONLY` | List governance recommendations proposed by AI | Advisory only; never constitutes change authorization. |
+| `get_recommendation` | `READ_ONLY` | Get detailed recommendation rationale & evidence | Inspect proposed actions and effective risk levels. |
+| `create_approval_request` | `ACTION` | Create formal human approval request | Initiates formal governance review process. |
+| `get_approval_request` | `READ_ONLY` | Get approval request status & evidence bundle | Inspect versions, commit SHA, and verification IDs. |
+| `approve_change` | `ACTION` | Record human approval & issue ChangeAuthorization | Human-only tool; AI identities rejected deterministically. |
+| `reject_change` | `ACTION` | Record human rejection and block change | Human-only tool; sets status to REJECTED. |
+| `get_change_authorization` | `READ_ONLY` | Inspect ChangeAuthorization status & scope | Verify active, unexpired, and artifact-bound status. |
+| `revoke_change_authorization` | `ACTION` | Revoke active authorization | Immediately invalidates authorization. |
+| `get_governance_evidence` | `READ_ONLY` | Retrieve & verify EvidencePackage hash | Cryptographic SHA-256 integrity verification. |
+| `get_governance_audit` | `READ_ONLY` | Query immutable governance audit trail | Tamper-evident log of all transitions. |
 
-> **Security Restriction**: Only canonical read-oriented tools and bounded actions are exposed. No arbitrary shell, SQL, filesystem, credential, merge, prompt auto-deployment, or production mutations.
+> **Security Restriction**: Only canonical read-oriented tools and bounded actions are exposed (45 canonical tools total). No arbitrary shell, SQL, filesystem, credential, merge, prompt auto-deployment, or production mutations.
 
 For schemas, arguments, and return envelopes, see the [Tool Usage Reference](./references/tool-usage.md).
 
 ---
 
-## Prompt Reliability Lab Operational Principles (Slice 7.7)
+## Prompt Reliability Lab & Human Governance (Slices 7.7 & 7.8)
 
-When evaluating AI prompts and model interactions:
+### Prompt Reliability Lab Rules
 1. **Prompts are Engineering Artifacts**: Prompt versions are strictly immutable once evaluated. Never attempt to edit an evaluated version in-place.
 2. **Multi-Causal Layer Attribution**: A failed output must NOT be assumed to be a prompt failure. Distinguish `PROMPT_DEFECT`, `MODEL_BEHAVIOR`, `RETRIEVAL_FAILURE`, `CONTEXT_FAILURE`, `TOOL_FAILURE`, `APPLICATION_LOGIC`, `PARSER_FAILURE`, `SCHEMA_FAILURE`, `DATA_FAILURE`, `EVALUATOR_FAILURE`, and `UNKNOWN`.
 3. **Deterministic Evaluation Precedence**: Schema validation, rule constraints, and syntax checks run before LLM judges. A single LLM judge cannot override deterministic failures.
 4. **Epistemic Certainty**: Preserve `UNKNOWN` and `ABSTAINED` states; never coerce them into `PASS`.
 5. **Regression Detection**: New prompt versions must be evaluated against the identical frozen evaluation suite. Critical regressions must never be hidden behind aggregate improvements.
-6. **No Autonomous Deployment**: Candidate prompt improvements require human review and approval. Automated prompt deployment to production is strictly forbidden.
+
+### Human Governance & Authority Boundary Rules (Slice 7.8)
+1. **Zero Autonomous Authorization**: The Engineering Lab and AI agents can analyze, evaluate, diagnose, propose, and verify. **Humans authorize consequential change.**
+2. **Never Represent a Recommendation as an Approval**: AI-generated recommendations are strictly advisory (`epistemic_status: HYPOTHESIS`).
+3. **Never Represent Technical Verification as Authorization**: CI passing and Lab verification passing are evidence for a decision, never substitutes for it.
+4. **Never Assume Previous Approval Applies to a New Version**: Approval for Prompt v18 cannot authorize v19. Approval for Commit abc123 cannot authorize Commit def456.
+5. **Never Bypass the Configured Governance Boundary**: Consequential changes require an explicit, unexpired, non-revoked `ChangeAuthorization` verified by `can_apply()`.
 
 ---
 
@@ -149,9 +165,9 @@ If the Engineering Lab returns:
 
 ---
 
-## 9-Stage Definition of "Done"
+## 12-Stage Definition of "Done"
 
-Do not conflate implementation completion with verification completion. Every engineering task follows this strict 9-stage lifecycle progression:
+Do not conflate implementation completion or automated verification with human authorization. Every consequential engineering change follows this strict 12-stage lifecycle progression:
 
 ```text
 [ IMPLEMENTED ]
@@ -178,20 +194,39 @@ Do not conflate implementation completion with verification completion. Every en
 [ EVIDENCE_RECORDED ]
        │
        ▼
-[ READY_FOR_HUMAN_RELEASE / COMPLETE ]
+[ GOVERNANCE_REVIEW ]
+       │
+       ▼
+[ READY_FOR_HUMAN_RELEASE ]
+       │
+       ▼
+[ HUMAN_DECISION (APPROVE/REJECT) ]
+       │
+       ▼
+ [ AUTHORIZED ]
+       │
+       ▼
+[ RELEASE / PROMOTION ]
+       │
+       ▼
+[ POST-CHANGE VERIFICATION ]
 ```
 
-1. **IMPLEMENTED**: Code changes are authored in Antigravity.
-2. **LOCAL_TESTED**: Local developer unit tests pass on the development machine.
-3. **COMMITTED**: Code changes committed to a Git branch with clean parent provenance.
-4. **PR_CREATED**: Real GitHub Pull Request opened or synchronized.
-5. **REVIEWED**: Static AI Code Review has evaluated the actual PR diff with no blocking critical/high findings.
-6. **CI_VERIFIED**: GitHub Actions CI workflow runs execute and conclude with `success` on the exact head commit SHA.
-7. **LAB_VERIFIED**: Independent Engineering Lab behavioral test session executes against the running application.
-8. **EVIDENCE_RECORDED**: Forensic artifacts, run logs, and SHA-256 digests are retrieved and linked.
-9. **READY_FOR_HUMAN_RELEASE (COMPLETE)**: Release readiness evaluator confirms all gates passed. Human approval is required before merge or deployment.
+1. **IMPLEMENTED**: Code or prompt changes authored in Antigravity.
+2. **LOCAL_TESTED**: Local unit tests pass.
+3. **COMMITTED**: Changes committed with clean git provenance.
+4. **PR_CREATED**: Pull Request opened or synchronized.
+5. **REVIEWED**: Code or prompt review completed.
+6. **CI_VERIFIED**: GitHub Actions CI succeeds on exact head commit.
+7. **LAB_VERIFIED**: Engineering Lab behavioral verification completes.
+8. **EVIDENCE_RECORDED**: Evidence package created with SHA-256 content hash.
+9. **GOVERNANCE_REVIEW**: Compliance evaluated against applicable governance policy.
+10. **READY_FOR_HUMAN_RELEASE**: Formal approval request awaiting human decision.
+11. **HUMAN_DECISION**: Explicit decision recorded by authenticated human.
+12. **AUTHORIZED & APPLIED**: `ChangeAuthorization` issued, validated by `can_apply()`, and consumed upon promotion/merge.
 
 ### Explicit Agent Directives
+- **Never approve changes**: Agent actor types (`AI_AGENT`, `SYSTEM`) and identities are rejected deterministically.
 - **Inspect exact PR / Head SHA**: Always verify that CI runs and Lab tests match the exact head commit SHA of the PR.
 - **Never assume CI passed**: An agent claim is non-binding; query `get_github_ci_status` directly.
 - **Never assume runtime verification passed**: Code-level CI pass does NOT imply behavioral correctness.
@@ -199,7 +234,7 @@ Do not conflate implementation completion with verification completion. Every en
 - **Preserve evidence**: Record cryptographic artifact digests and test session IDs.
 - **Distinguish observations from interpretations**: Clearly label syntax evidence as `OBSERVED`, concurrency risks as `INFERRED`, and speculative side effects as `HYPOTHESIS`.
 - **Stop when required evidence is unavailable**: Return `INSUFFICIENT_DATA` or `NOT_READY` rather than guessing.
-- **Never merge automatically**: The merge decision belongs strictly to the human engineering authority.
+- **Never merge or promote automatically**: The promotion/merge decision belongs strictly to the human engineering authority.
 
 ---
 

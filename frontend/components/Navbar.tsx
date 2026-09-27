@@ -15,7 +15,8 @@ import {
   AlertCircle,
   Compass,
   Scale,
-  GitBranch
+  GitBranch,
+  UserCheck
 } from 'lucide-react';
 import { api } from '@/lib/api';
 
@@ -166,6 +167,21 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenLaunchModal }) => {
                 <span>Prompt Lab</span>
               </div>
             </Link>
+
+            <Link
+              href="/governance"
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                pathname.startsWith('/governance')
+                  ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+              }`}
+            >
+              <div className="flex items-center space-x-1.5">
+                <UserCheck className="h-3.5 w-3.5 text-amber-400" />
+                <span>Governance</span>
+              </div>
+            </Link>
+
 
             <Link
               href="/architecture"

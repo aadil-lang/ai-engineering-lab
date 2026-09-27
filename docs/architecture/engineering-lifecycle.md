@@ -199,4 +199,24 @@ The AI Engineering Lab harmonizes four complementary verification pillars:
 1. **GitHub Lifecycle**: Governs what code is proposed and whether deterministic CI checks passed.
 2. **Software Reliability Lab**: Governs what the running application actually did at runtime.
 3. **Prompt Reliability Lab**: Governs whether prompt versions meet structured schemas, grounding constraints, and behavioral requirements across versioned test cases without regressing.
-4. **Engineering Evidence**: Provides immutable, mathematically reproducible proof connecting code, prompts, runs, and human decisions.
+4. **Human Governance Layer**: Enforces human decision provenance, policy evaluation, and scoped change authorizations.
+5. **Engineering Evidence**: Provides immutable, mathematically reproducible proof connecting code, prompts, runs, and human decisions.
+
+---
+
+## 8. Human Governance & Change Authorization (Slice 7.8)
+
+The 45 canonical agent tools across all layers are structured as follows:
+
+| Layer | Tools | Count |
+| :--- | :--- | :--- |
+| **Software Reliability QA** | `inspect_application`, `start_test_session`, `get_application_health`, `get_prediction`, `get_uncertainty`, `list_failures`, `get_failure`, `diagnose_failure`, `get_evidence`, `get_reliability_summary` | 10 |
+| **Git & Engineering Lifecycle** | `get_repository_status`, `get_git_diff`, `get_commit`, `get_pull_request`, `get_ci_status`, `get_release_readiness` | 6 |
+| **GitHub Actions & PR** | `get_github_repository`, `get_github_pull_request`, `get_github_pull_request_diff`, `get_github_ci_status`, `get_github_checks`, `get_github_pr_review` | 6 |
+| **Prompt Reliability Lab** | `list_prompts`, `get_prompt`, `get_prompt_version`, `create_prompt_version`, `list_evaluation_suites`, `get_evaluation_suite`, `start_evaluation`, `get_evaluation`, `get_evaluation_result`, `compare_prompt_versions`, `get_prompt_regressions`, `get_prompt_diagnosis`, `get_prompt_evidence` | 13 |
+| **Human Governance** | `list_recommendations`, `get_recommendation`, `create_approval_request`, `get_approval_request`, `approve_change`, `reject_change`, `get_change_authorization`, `revoke_change_authorization`, `get_governance_evidence`, `get_governance_audit` | 10 |
+| **Total Canonical Tools** | | **45** |
+
+### Operating Axiom
+> **AI can analyze, recommend, and verify. Humans authorize consequential change.**
+

@@ -121,3 +121,14 @@ The Prompt Reliability Lab introduces 13 new canonical tools into the central `T
 11. `get_prompt_regressions`
 12. `get_prompt_diagnosis`
 13. `get_prompt_evidence`
+
+---
+
+## 7. Consequential Change Authorization Gate (Slice 7.8)
+
+In accordance with the Human Governance Layer:
+* A prompt improvement candidate is strictly a **hypothesis**.
+* Promoting a candidate version to active/deployed production status requires an explicit, unexpired, non-revoked `ChangeAuthorization` bound to that exact version number (`target_version == authorized_version`).
+* Attempting to call `promote_prompt_version(prompt_id, version, authorization_id)` without valid authorization raises `ConsequentialChangeBlockedError`.
+* Approval for version $N$ never authorizes version $N+1$.
+

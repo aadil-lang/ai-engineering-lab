@@ -101,6 +101,28 @@ from backend.app.models.prompt_lab_tools import (
     GetPromptEvidenceRequest,
     GetPromptEvidenceResponse,
 )
+from backend.app.models.governance_tools import (
+    ListRecommendationsRequest,
+    ListRecommendationsResponse,
+    GetRecommendationRequest,
+    GetRecommendationResponse,
+    CreateApprovalRequestRequest,
+    CreateApprovalRequestResponse,
+    GetApprovalRequestRequest,
+    GetApprovalRequestResponse,
+    ApproveChangeRequest,
+    ApproveChangeResponse,
+    RejectChangeRequest,
+    RejectChangeResponse,
+    GetChangeAuthorizationRequest,
+    GetChangeAuthorizationResponse,
+    RevokeChangeAuthorizationRequest,
+    RevokeChangeAuthorizationResponse,
+    GetGovernanceEvidenceRequest,
+    GetGovernanceEvidenceResponse,
+    GetGovernanceAuditRequest,
+    GetGovernanceAuditResponse,
+)
 from backend.app.control_plane.context import ToolInvocationContext
 from backend.app.control_plane.errors import (
     ApplicationNotFoundError,
@@ -134,6 +156,7 @@ class ReliabilityControlPlane:
         enable_lifecycle_tools: bool = False,
         enable_github_tools: bool = False,
         enable_prompt_lab_tools: bool = False,
+        enable_governance_tools: bool = False,
     ):
         self.db_path = db_path
         self.repo = SQLiteRepository(db_path=db_path)
@@ -187,6 +210,13 @@ class ReliabilityControlPlane:
         self.evaluation_service = None
         self.prompt_diagnosis_service = None
 
+        # Governance Services
+        self.governance_repo = None
+        self.governance_evidence_service = None
+        self.governance_policy_service = None
+        self.authorization_service = None
+        self.governance_approval_service = None
+
         if enable_lifecycle_tools or os.environ.get("ENABLE_LIFECYCLE_TOOLS") == "1":
             self.register_lifecycle_tools()
 
@@ -195,6 +225,9 @@ class ReliabilityControlPlane:
 
         if enable_prompt_lab_tools or os.environ.get("ENABLE_PROMPT_LAB_TOOLS") == "1":
             self.register_prompt_lab_tools()
+
+        if enable_governance_tools or os.environ.get("ENABLE_GOVERNANCE_TOOLS") == "1":
+            self.register_governance_tools()
 
     def _register_all_tools(self):
         """Registers the 10 canonical agent tools into the registry."""
@@ -1518,6 +1551,286 @@ class ReliabilityControlPlane:
             execution=exec_record,
             facts=facts,
         )
+
+    # =========================================================================
+    # GOVERNANCE TOOLS REGISTRATION (Tools 36 - 45)
+    # =========================================================================
+
+    def _ensure_governance_init(self):
+        if not self.governance_repo:
+            from backend.app.governance.repository import GovernanceRepository
+            from backend.app.governance.evidence_service import GovernanceEvidenceService
+            from backend.app.governance.policy_service import GovernancePolicyService
+            from backend.app.governance.authorization_service import ChangeAuthorizationService
+            from backend.app.governance.approval_service import GovernanceApprovalService
+
+            self.governance_repo = GovernanceRepository()
+            self.governance_evidence_service = GovernanceEvidenceService(self.governance_repo)
+            self.governance_policy_service = GovernancePolicyService(self.governance_repo)
+            self.authorization_service = ChangeAuthorizationService(
+                self.governance_repo, self.governance_evidence_service
+            )
+            self.governance_approval_service = GovernanceApprovalService(
+                self.governance_repo,
+                self.governance_policy_service,
+                self.governance_evidence_service,
+                self.authorization_service,
+            )
+
+    def register_governance_tools(self):
+        """Registers the 10 Human Governance & Change Authorization tools into the registry."""
+        self._ensure_governance_init()
+
+        # Tool 36: list_recommendations (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="list_recommendations",
+                description="List governance recommendations proposed by AI analysis or engineering verification.",
+                mode=ToolMode.READ_ONLY,
+                request_model=ListRecommendationsRequest,
+                response_model=ListRecommendationsResponse,
+                handler=self.list_recommendations,
+                version="1.0",
+            )
+        )
+
+        # Tool 37: get_recommendation (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_recommendation",
+                description="Get detailed governance recommendation with rationale and evidence links.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetRecommendationRequest,
+                response_model=GetRecommendationResponse,
+                handler=self.get_recommendation,
+                version="1.0",
+            )
+        )
+
+        # Tool 38: create_approval_request (ACTION)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="create_approval_request",
+                description="Create a formal human approval request requiring human decision before consequential change.",
+                mode=ToolMode.ACTION,
+                request_model=CreateApprovalRequestRequest,
+                response_model=CreateApprovalRequestResponse,
+                handler=self.create_approval_request,
+                version="1.0",
+            )
+        )
+
+        # Tool 39: get_approval_request (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_approval_request",
+                description="Get approval request details, decisions, authorizations, and evidence package.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetApprovalRequestRequest,
+                response_model=GetApprovalRequestResponse,
+                handler=self.get_approval_request,
+                version="1.0",
+            )
+        )
+
+        # Tool 40: approve_change (ACTION)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="approve_change",
+                description="Record human approval for a consequential change and issue a scoped ChangeAuthorization.",
+                mode=ToolMode.ACTION,
+                request_model=ApproveChangeRequest,
+                response_model=ApproveChangeResponse,
+                handler=self.approve_change,
+                version="1.0",
+            )
+        )
+
+        # Tool 41: reject_change (ACTION)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="reject_change",
+                description="Record human rejection of an approval request, blocking the change.",
+                mode=ToolMode.ACTION,
+                request_model=RejectChangeRequest,
+                response_model=RejectChangeResponse,
+                handler=self.reject_change,
+                version="1.0",
+            )
+        )
+
+        # Tool 42: get_change_authorization (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_change_authorization",
+                description="Get a ChangeAuthorization and check its scope, validity, and status.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetChangeAuthorizationRequest,
+                response_model=GetChangeAuthorizationResponse,
+                handler=self.get_change_authorization,
+                version="1.0",
+            )
+        )
+
+        # Tool 43: revoke_change_authorization (ACTION)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="revoke_change_authorization",
+                description="Revoke an existing active ChangeAuthorization, preventing it from being applied.",
+                mode=ToolMode.ACTION,
+                request_model=RevokeChangeAuthorizationRequest,
+                response_model=RevokeChangeAuthorizationResponse,
+                handler=self.revoke_change_authorization,
+                version="1.0",
+            )
+        )
+
+        # Tool 44: get_governance_evidence (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_governance_evidence",
+                description="Retrieve and cryptographically verify a governance EvidencePackage.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetGovernanceEvidenceRequest,
+                response_model=GetGovernanceEvidenceResponse,
+                handler=self.get_governance_evidence,
+                version="1.0",
+            )
+        )
+
+        # Tool 45: get_governance_audit (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_governance_audit",
+                description="Get the immutable audit trail of governance events, decisions, and authorizations.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetGovernanceAuditRequest,
+                response_model=GetGovernanceAuditResponse,
+                handler=self.get_governance_audit,
+                version="1.0",
+            )
+        )
+
+    # --- Governance Tool Handlers ---
+
+    def list_recommendations(self, req: ListRecommendationsRequest, context: ToolInvocationContext) -> ListRecommendationsResponse:
+        self._ensure_governance_init()
+        recs = self.governance_approval_service.list_recommendations()
+        if req.limit:
+            recs = recs[: req.limit]
+        return ListRecommendationsResponse(recommendations=recs)
+
+    def get_recommendation(self, req: GetRecommendationRequest, context: ToolInvocationContext) -> GetRecommendationResponse:
+        self._ensure_governance_init()
+        rec = self.governance_approval_service.get_recommendation(req.recommendation_id)
+        return GetRecommendationResponse(recommendation=rec)
+
+    def create_approval_request(self, req: CreateApprovalRequestRequest, context: ToolInvocationContext) -> CreateApprovalRequestResponse:
+        self._ensure_governance_init()
+        apr = self.governance_approval_service.create_approval_request(
+            change_type=req.change_type,
+            subject_type=req.subject_type,
+            subject_id=req.subject_id,
+            evidence_package_id=req.evidence_package_id,
+            recommendation_id=req.recommendation_id,
+            current_version=req.current_version,
+            proposed_version=req.proposed_version,
+            proposed_commit_sha=req.proposed_commit_sha,
+            evaluation_snapshot_id=req.evaluation_snapshot_id,
+            lab_verification_id=req.lab_verification_id,
+            ci_verification_id=req.ci_verification_id,
+            risk_level=req.risk_level,
+        )
+        return CreateApprovalRequestResponse(approval_request=apr)
+
+    def get_approval_request(self, req: GetApprovalRequestRequest, context: ToolInvocationContext) -> GetApprovalRequestResponse:
+        self._ensure_governance_init()
+        apr = self.governance_approval_service.get_approval_request(req.approval_request_id)
+        dec = self.governance_repo.get_decision_for_request(req.approval_request_id)
+        auth = None
+        if dec:
+            auths = self.governance_repo.list_authorizations()
+            matching = [a for a in auths if a.approval_request_id == req.approval_request_id]
+            if matching:
+                auth = matching[0]
+        pkg = self.governance_repo.get_evidence_package(apr.evidence_package_id)
+        return GetApprovalRequestResponse(
+            approval_request=apr,
+            decision=dec,
+            authorization=auth,
+            evidence_package=pkg,
+        )
+
+    def approve_change(self, req: ApproveChangeRequest, context: ToolInvocationContext) -> ApproveChangeResponse:
+        self._ensure_governance_init()
+        from backend.app.governance.models import DecisionType, ActorType
+
+        apr, dec, auth = self.governance_approval_service.record_decision(
+            approval_request_id=req.approval_request_id,
+            decision=DecisionType.APPROVE,
+            decision_maker_id=req.decision_maker_id,
+            decision_reason=req.decision_reason,
+            actor_type=ActorType.HUMAN,
+            evidence_acknowledged=req.evidence_acknowledged,
+            version_acknowledged=req.version_acknowledged,
+            commit_acknowledged=req.commit_acknowledged,
+            authorization_scope=req.authorization_scope,
+        )
+        return ApproveChangeResponse(
+            approval_request=apr,
+            decision=dec,
+            authorization=auth,
+        )
+
+    def reject_change(self, req: RejectChangeRequest, context: ToolInvocationContext) -> RejectChangeResponse:
+        self._ensure_governance_init()
+        from backend.app.governance.models import DecisionType, ActorType
+
+        apr, dec, auth = self.governance_approval_service.record_decision(
+            approval_request_id=req.approval_request_id,
+            decision=DecisionType.REJECT,
+            decision_maker_id=req.decision_maker_id,
+            decision_reason=req.decision_reason,
+            actor_type=ActorType.HUMAN,
+        )
+        return RejectChangeResponse(
+            approval_request=apr,
+            decision=dec,
+        )
+
+    def get_change_authorization(self, req: GetChangeAuthorizationRequest, context: ToolInvocationContext) -> GetChangeAuthorizationResponse:
+        self._ensure_governance_init()
+        auth = self.authorization_service.get_authorization(req.authorization_id)
+        return GetChangeAuthorizationResponse(authorization=auth)
+
+    def revoke_change_authorization(self, req: RevokeChangeAuthorizationRequest, context: ToolInvocationContext) -> RevokeChangeAuthorizationResponse:
+        self._ensure_governance_init()
+        auth = self.authorization_service.revoke_authorization(
+            authorization_id=req.authorization_id,
+            actor_id=req.actor_id,
+            reason=req.revocation_reason,
+        )
+        return RevokeChangeAuthorizationResponse(authorization=auth)
+
+    def get_governance_evidence(self, req: GetGovernanceEvidenceRequest, context: ToolInvocationContext) -> GetGovernanceEvidenceResponse:
+        self._ensure_governance_init()
+        pkg = self.governance_evidence_service.get_evidence_package(req.package_id)
+        is_valid = self.governance_evidence_service.verify_package_integrity(pkg)
+        return GetGovernanceEvidenceResponse(
+            evidence_package=pkg,
+            is_valid=is_valid,
+        )
+
+    def get_governance_audit(self, req: GetGovernanceAuditRequest, context: ToolInvocationContext) -> GetGovernanceAuditResponse:
+        self._ensure_governance_init()
+        records = self.governance_repo.list_audit_records(
+            subject_id=req.subject_id,
+            approval_request_id=req.approval_request_id,
+        )
+        if req.limit:
+            records = records[: req.limit]
+        return GetGovernanceAuditResponse(audit_records=records)
+
 
 
 

@@ -10,6 +10,12 @@ import {
   EngineeringDiagnosis,
   RemediationTask,
   RemediationTaskCreate,
+  GovernanceRecommendationModel,
+  ApprovalRequestModel,
+  HumanDecisionModel,
+  ChangeAuthorizationModel,
+  EvidencePackageModel,
+  GovernanceAuditRecordModel,
 } from '@/types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
@@ -561,6 +567,106 @@ export const api = {
     );
   },
 };
+
+export const governanceApi = {
+  getRecommendations: async (): Promise<GovernanceRecommendationModel[]> => {
+    return fetchJson<GovernanceRecommendationModel[]>('/governance/recommendations');
+  },
+
+  getRecommendation: async (id: string): Promise<GovernanceRecommendationModel> => {
+    return fetchJson<GovernanceRecommendationModel>(`/governance/recommendations/${encodeURIComponent(id)}`);
+  },
+
+  createApprovalRequest: async (dto: any): Promise<ApprovalRequestModel> => {
+    return fetchJson<ApprovalRequestModel>('/governance/approval-requests', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  },
+
+  getApprovalRequests: async (status?: string): Promise<ApprovalRequestModel[]> => {
+    const q = status ? `?status=${encodeURIComponent(status)}` : '';
+    return fetchJson<ApprovalRequestModel[]>(`/governance/approval-requests${q}`);
+  },
+
+  getApprovalRequest: async (id: string): Promise<{
+    approval_request: ApprovalRequestModel;
+    decision?: HumanDecisionModel | null;
+    authorization?: ChangeAuthorizationModel | null;
+    evidence_package?: EvidencePackageModel | null;
+  }> => {
+    return fetchJson<any>(`/governance/approval-requests/${encodeURIComponent(id)}`);
+  },
+
+  approveChange: async (
+    id: string,
+    dto: {
+      decision_reason: string;
+      evidence_acknowledged: boolean;
+      version_acknowledged: boolean;
+      commit_acknowledged: boolean;
+      authorization_scope: string;
+    },
+    humanUser: string
+  ): Promise<{
+    approval_request: ApprovalRequestModel;
+    decision: HumanDecisionModel;
+    authorization: ChangeAuthorizationModel;
+  }> => {
+    return fetchJson<any>(`/governance/approval-requests/${encodeURIComponent(id)}/approve`, {
+      method: 'POST',
+      headers: {
+        'X-Human-User': humanUser,
+      },
+      body: JSON.stringify(dto),
+    });
+  },
+
+  rejectChange: async (
+    id: string,
+    dto: { decision_reason: string },
+    humanUser: string
+  ): Promise<{
+    approval_request: ApprovalRequestModel;
+    decision: HumanDecisionModel;
+  }> => {
+    return fetchJson<any>(`/governance/approval-requests/${encodeURIComponent(id)}/reject`, {
+      method: 'POST',
+      headers: {
+        'X-Human-User': humanUser,
+      },
+      body: JSON.stringify(dto),
+    });
+  },
+
+  getAuthorization: async (id: string): Promise<ChangeAuthorizationModel> => {
+    return fetchJson<ChangeAuthorizationModel>(`/governance/authorizations/${encodeURIComponent(id)}`);
+  },
+
+  revokeAuthorization: async (
+    id: string,
+    dto: { reason: string },
+    humanUser: string
+  ): Promise<ChangeAuthorizationModel> => {
+    return fetchJson<ChangeAuthorizationModel>(`/governance/authorizations/${encodeURIComponent(id)}/revoke`, {
+      method: 'POST',
+      headers: {
+        'X-Human-User': humanUser,
+      },
+      body: JSON.stringify(dto),
+    });
+  },
+
+  getEvidence: async (packageId: string): Promise<{ evidence_package: EvidencePackageModel; is_valid: boolean }> => {
+    return fetchJson<any>(`/governance/evidence/${encodeURIComponent(packageId)}`);
+  },
+
+  getAudit: async (subjectId?: string): Promise<GovernanceAuditRecordModel[]> => {
+    const q = subjectId ? `?subject_id=${encodeURIComponent(subjectId)}` : '';
+    return fetchJson<GovernanceAuditRecordModel[]>(`/governance/audit${q}`);
+  },
+};
+
 
 
 

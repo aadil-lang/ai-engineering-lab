@@ -1525,6 +1525,140 @@ export interface EvaluationSnapshotModel {
   timestamp: string;
 }
 
+// =========================================================================
+// GOVERNANCE & CHANGE AUTHORIZATION TYPES (Slice 7.8)
+// =========================================================================
+
+export type RecommendationType =
+  | 'CODE_CHANGE'
+  | 'PROMPT_CHANGE'
+  | 'MODEL_CONFIGURATION_CHANGE'
+  | 'RAG_CONFIGURATION_CHANGE'
+  | 'TOOL_PERMISSION_CHANGE'
+  | 'DEPLOYMENT'
+  | 'ROLLBACK'
+  | 'OTHER';
+
+export type ApprovalRequestStatus =
+  | 'PENDING'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'EXPIRED'
+  | 'CANCELLED'
+  | 'SUPERSEDED';
+
+export type DecisionType = 'APPROVE' | 'REJECT';
+
+export type AuthorizationStatus = 'ACTIVE' | 'USED' | 'EXPIRED' | 'REVOKED';
+
+export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export interface GovernanceRecommendationModel {
+  recommendation_id: string;
+  recommendation_type: RecommendationType;
+  subject_type: string;
+  subject_id: string;
+  source_system: string;
+  source_run_id?: string | null;
+  source_evaluation_id?: string | null;
+  source_diagnosis_id?: string | null;
+  source_evidence_ids: string[];
+  proposed_action: string;
+  rationale: string;
+  epistemic_status: string;
+  risk_level: RiskLevel;
+  effective_risk?: RiskLevel | null;
+  created_at: string;
+  expires_at?: string | null;
+}
+
+export interface EvidencePackageModel {
+  package_id: string;
+  subject_type: string;
+  subject_id: string;
+  git_commit_sha?: string | null;
+  prompt_version?: string | null;
+  model_version?: string | null;
+  evaluation_snapshot_id?: string | null;
+  ci_run_id?: string | null;
+  lab_verification_id?: string | null;
+  diagnosis_ids: string[];
+  recommendation_ids: string[];
+  observations: string[];
+  failures: string[];
+  regressions: string[];
+  verification_results: Record<string, any>;
+  created_at: string;
+  content_hash: string;
+}
+
+export interface ApprovalRequestModel {
+  approval_request_id: string;
+  recommendation_id?: string | null;
+  change_type: RecommendationType;
+  subject_type: string;
+  subject_id: string;
+  current_version?: string | null;
+  proposed_version?: string | null;
+  proposed_commit_sha?: string | null;
+  evaluation_snapshot_id?: string | null;
+  lab_verification_id?: string | null;
+  ci_verification_id?: string | null;
+  evidence_package_id: string;
+  risk_level: RiskLevel;
+  required_approval_count: number;
+  status: ApprovalRequestStatus;
+  created_at: string;
+  expires_at?: string | null;
+}
+
+export interface HumanDecisionModel {
+  decision_id: string;
+  approval_request_id: string;
+  decision: DecisionType;
+  decision_maker_id: string;
+  actor_type: 'HUMAN';
+  decision_timestamp: string;
+  decision_reason: string;
+  evidence_acknowledged: boolean;
+  version_acknowledged: boolean;
+  commit_acknowledged: boolean;
+}
+
+export interface ChangeAuthorizationModel {
+  authorization_id: string;
+  approval_request_id: string;
+  decision_id: string;
+  authorized_change_type: RecommendationType;
+  authorized_subject: string;
+  authorized_version?: string | null;
+  authorized_commit_sha?: string | null;
+  authorization_scope: string;
+  evidence_package_id: string;
+  evidence_package_hash: string;
+  issued_at: string;
+  expires_at: string;
+  status: AuthorizationStatus;
+}
+
+export interface GovernanceAuditRecordModel {
+  event_id: string;
+  event_type: string;
+  actor_type: 'SYSTEM' | 'AI_AGENT' | 'HUMAN';
+  actor_id: string;
+  subject_type: string;
+  subject_id: string;
+  previous_state?: string | null;
+  new_state?: string | null;
+  timestamp: string;
+  evidence_package_id?: string | null;
+  approval_request_id?: string | null;
+  authorization_id?: string | null;
+  content_hash: string;
+  details: Record<string, any>;
+}
+
+
 
 
 

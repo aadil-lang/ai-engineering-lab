@@ -135,3 +135,36 @@ class PromptService:
         pv = self.get_prompt_version(prompt_id, version)
         pv.status = new_status
         return self.repo.save_prompt_version(pv)
+
+    def promote_prompt_version(
+        self,
+        prompt_id: str,
+        version: int,
+        authorization_id: str,
+        auth_service: Optional[Any] = None,
+    ) -> PromptVersion:
+        """
+        Promotes a prompt version to DEPLOYED status.
+        Consequential boundary invariant: strictly requires a valid, verified ChangeAuthorization.
+        """
+        from backend.app.governance.models import RecommendationType
+        from backend.app.governance.errors import ConsequentialChangeBlockedError
+        from backend.app.governance.authorization_service import ChangeAuthorizationService
+
+        service = auth_service or ChangeAuthorizationService()
+        check = service.can_apply(
+            change_type=RecommendationType.PROMPT_CHANGE,
+            subject_id=prompt_id,
+            authorization_id=authorization_id,
+            target_version=str(version),
+            requested_scope="PROMOTE",
+        )
+        if not check.is_authorized:
+            raise ConsequentialChangeBlockedError(
+                f"Prompt promotion blocked by governance: {'; '.join(check.blockers or check.reasons)}"
+            )
+
+        # Mark authorization as used
+        service.consume_authorization(authorization_id, actor_id="prompt-service")
+        return self.update_version_status(prompt_id, version, PromptStatus.DEPLOYED)
+

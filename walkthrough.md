@@ -895,6 +895,60 @@ Registered REST endpoints under `/api/v1/prompt-lab` for prompts, versions, eval
 
 **Status:** **`PROMPT_RELIABILITY_LAB_VERIFIED`**
 
+---
+
+# Slice 7.8: Human Governance & Change Authorization Layer
+
+## Objective & Non-Negotiable Boundary
+
+Extend the AI Engineering Lab with a first-class governance layer that records, evaluates, and enforces human authorization for consequential engineering changes:
+* AI observes, tests, evaluates, diagnoses, and proposes. **Humans authorize consequential change.**
+* The system must NOT autonomously authorize consequential changes (code merge, production release, prompt promotion, model configuration alteration, tool permission expansion, or deployment).
+* AI agents cannot approve changes; impersonation of human authority is forbidden (`AIAgentCannotApproveError`).
+* Approvals are strictly version-specific and commit-specific: Approval for v18 cannot authorize v19; approval for commit abc123 cannot authorize def456.
+* Evidence bundles are cryptographically bound via SHA-256; evidence mutation immediately invalidates active authorizations (`EvidencePackageTamperedError`).
+
+---
+
+## 1. Architectural Implementation
+
+### 1.1 Governance Domain (`backend/app/governance/`)
+* **`models.py`**: Clean typed Pydantic models: `GovernanceRecommendation`, `ApprovalRequest`, `HumanDecision`, `ChangeAuthorization`, `ApprovalPolicy`, `EvidencePackage`, `GovernanceAuditRecord`, `CanApplyResult`.
+* **`repository.py`**: `GovernanceRepository` with SQLite persistence (`governance_recommendations`, `approval_requests`, `human_decisions`, `change_authorizations`, `approval_policies`, `evidence_packages`, `governance_audit`), immutability enforcement on approval requests, and append-only audit trail.
+* **`evidence_service.py`**: `GovernanceEvidenceService` constructing canonical evidence bundles, secret scrubbing, SHA-256 hashing, and integrity verification.
+* **`policy_service.py`**: `GovernancePolicyService` deterministically determining `EFFECTIVE_RISK` and evaluating policy compliance.
+* **`authorization_service.py`**: `ChangeAuthorizationService` issuing scoped, time-bounded authorizations and enforcing the 12-invariant consequential change gate: `can_apply()`.
+* **`approval_service.py`**: `GovernanceApprovalService` managing recommendations, approval requests, and human decisions with anti-impersonation guards.
+* **`errors.py`**: Typed governance exceptions.
+
+### 1.2 Control Plane Tool Registry Expansion (45 Canonical Tools)
+Added 10 new canonical governance tools:
+`list_recommendations`, `get_recommendation`, `create_approval_request`, `get_approval_request`, `approve_change`, `reject_change`, `get_change_authorization`, `revoke_change_authorization`, `get_governance_evidence`, `get_governance_audit`.
+
+### 1.3 REST API (`backend/app/api/v1/governance.py`)
+Registered REST endpoints under `/api/v1/governance` for recommendations, approval requests, human approval/rejection with `X-Human-User` authentication, authorizations, evidence packages, and audit trails.
+
+### 1.4 Frontend Dashboard (`frontend/app/governance/page.tsx`)
+* **Pending Decisions**: Real-time review queue with risk levels, artifact badges, and verification states.
+* **Approval Detail Inspector**: Displays what is changing, why it is proposed, target version, target commit SHA, evaluation snapshot, and verified evidence bundle.
+* **Human Decision Form**: Anti-agent identity checks, explicit evidence/version/commit acknowledgment checkboxes, and clear Approve / Reject buttons.
+* **Audit Trail**: Real-time immutable audit log with SHA-256 hashes.
+
+---
+
+## 2. Test Verification Matrix
+
+* **Governance Core Unit Tests (`backend/tests/test_governance_core.py`)**: **10/10 PASSED** (evidence hashing & secret scrubbing, tamper detection, effective risk policy evaluation, approval request immutability, AI agent approval rejection, scoped authorization issuance, version specificity v18 vs v19, commit SHA specificity abc123 vs def456, revoked authorization blocking, immutable audit trail).
+* **Controlled E2E Lifecycle & Stale Commit Invalidation (`backend/tests/test_governance_e2e.py`)**: **2/2 PASSED**:
+  * 23-step prompt governance & remediation lifecycle: Prompt v1 failure $\to$ Diagnosis $\to$ Candidate v2 $\to$ Frozen suite evaluation $\to$ Zero regressions $\to$ Evidence package $\to$ Approval request $\to$ Unapproved promotion blocked $\to$ Human approval $\to$ Promoted to DEPLOYED $\to$ v3 promotion with v2 auth blocked $\to$ Evidence tampering invalidation $\to$ Human rejection blocks change $\to$ Audit trail verified.
+  * Git lifecycle stale commit invalidation: Commit A approved $\to$ Commit B arrives on PR $\to$ Old authorization blocked.
+* **Tool Registry & REST API (`backend/tests/test_governance_tools_and_api.py`)**: **3/3 PASSED** (Tool registration across all 10 tools, control plane workflow, FastAPI endpoint security & authentication).
+* **Full Backend Regression Suite**: **87/87 PASSED (61.79s)** across all 15 test files.
+* **Frontend Production Build**: `npm run build` compiled **12 static pages cleanly** with 0 errors.
+
+**Status:** **`HUMAN_GOVERNANCE_LAB_VERIFIED`**
+
+
 
 
 
