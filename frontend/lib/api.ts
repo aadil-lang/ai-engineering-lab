@@ -344,6 +344,72 @@ export const api = {
   async getRecentToolAudit(limit: number = 25): Promise<import('@/types').AuditEventRecord[]> {
     return fetchJson<import('@/types').AuditEventRecord[]>(`/tools/audit/recent?limit=${limit}`);
   },
+
+  // Slice 7.5: Git / PR / CI Engineering Lifecycle Integration
+  async getLifecycleStatus(): Promise<import('@/types').GitStatusModel> {
+    return fetchJson<import('@/types').GitStatusModel>('/lifecycle/status');
+  },
+
+  async getLifecycleDiff(baseSha?: string, headSha?: string): Promise<any> {
+    const params = new URLSearchParams();
+    if (baseSha) params.append('base_sha', baseSha);
+    if (headSha) params.append('head_sha', headSha);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return fetchJson<any>(`/lifecycle/diff${query}`);
+  },
+
+  async getLifecycleCommits(limit: number = 10): Promise<import('@/types').GitCommitModel[]> {
+    return fetchJson<import('@/types').GitCommitModel[]>(`/lifecycle/commits?limit=${limit}`);
+  },
+
+  async getLifecyclePRs(repository?: string): Promise<import('@/types').PullRequestModel[]> {
+    const query = repository ? `?repository=${encodeURIComponent(repository)}` : '';
+    return fetchJson<import('@/types').PullRequestModel[]>(`/lifecycle/pull-requests${query}`);
+  },
+
+  async createLifecyclePR(payload: {
+    title: string;
+    source_branch: string;
+    target_branch?: string;
+    description?: string;
+  }): Promise<import('@/types').PullRequestModel> {
+    return fetchJson<import('@/types').PullRequestModel>('/lifecycle/pull-requests', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async getLifecyclePRDetail(prId: string): Promise<{
+    pull_request: import('@/types').PullRequestModel;
+    reviews: import('@/types').PRReviewModel[];
+  }> {
+    return fetchJson<{
+      pull_request: import('@/types').PullRequestModel;
+      reviews: import('@/types').PRReviewModel[];
+    }>(`/lifecycle/pull-requests/${encodeURIComponent(prId)}`);
+  },
+
+  async reviewLifecyclePR(prId: string): Promise<import('@/types').PRReviewModel> {
+    return fetchJson<import('@/types').PRReviewModel>(`/lifecycle/pull-requests/${encodeURIComponent(prId)}/review`, {
+      method: 'POST',
+    });
+  },
+
+  async getCIRuns(commitSha: string): Promise<import('@/types').CIRunModel[]> {
+    return fetchJson<import('@/types').CIRunModel[]>(`/lifecycle/ci/${encodeURIComponent(commitSha)}`);
+  },
+
+  async triggerCIRun(commitSha?: string, workflow: string = 'pytest_unit'): Promise<import('@/types').CIRunModel> {
+    return fetchJson<import('@/types').CIRunModel>('/lifecycle/ci/run', {
+      method: 'POST',
+      body: JSON.stringify({ commit_sha: commitSha, workflow }),
+    });
+  },
+
+  async getReleaseReadiness(commitSha: string, prId?: string): Promise<import('@/types').ReleaseReadinessModel> {
+    const query = prId ? `?pr_id=${encodeURIComponent(prId)}` : '';
+    return fetchJson<import('@/types').ReleaseReadinessModel>(`/lifecycle/release-readiness/${encodeURIComponent(commitSha)}${query}`);
+  },
 };
 
 

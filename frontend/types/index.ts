@@ -1193,4 +1193,94 @@ export interface ToolEnvelope<T = any> {
   };
 }
 
+// Slice 7.5: Git / PR / CI Lifecycle Integration
+export interface GitStatusModel {
+  repository: string;
+  branch: string;
+  commit_sha: string;
+  parent_commit_sha?: string | null;
+  is_clean: boolean;
+  changed_files: Array<{ path: string; status: string }>;
+  untracked_files: string[];
+  ahead: number;
+  behind: number;
+}
+
+export interface GitCommitModel {
+  commit_sha: string;
+  parent_commit_sha?: string | null;
+  author: string;
+  email: string;
+  timestamp: string;
+  message: string;
+  files_changed: string[];
+}
+
+export interface ReviewFindingModel {
+  file: string;
+  line: number;
+  category: 'BUG' | 'SECURITY' | 'CORRECTNESS' | 'PERFORMANCE' | 'MAINTAINABILITY' | 'TESTING' | 'API_CONTRACT' | 'REGRESSION_RISK';
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO';
+  title: string;
+  description: string;
+  evidence: string;
+  confidence: number;
+  epistemic_status: 'OBSERVED' | 'INFERRED' | 'HYPOTHESIS';
+}
+
+export interface PRReviewModel {
+  review_id: string;
+  pr_id: string;
+  commit_sha: string;
+  status: 'PENDING' | 'APPROVED' | 'CHANGES_REQUESTED' | 'COMMENTED' | 'DISMISSED';
+  summary: string;
+  findings: ReviewFindingModel[];
+  created_at: string;
+}
+
+export interface PullRequestModel {
+  id: string;
+  repository: string;
+  number: number;
+  title: string;
+  description: string;
+  source_branch: string;
+  target_branch: string;
+  head_sha: string;
+  base_sha: string;
+  status: 'OPEN' | 'CHANGES_REQUESTED' | 'APPROVED' | 'CI_FAILED' | 'LAB_FAILED' | 'READY_TO_MERGE' | 'MERGED' | 'CLOSED';
+  created_at: string;
+  updated_at: string;
+  merged_at?: string | null;
+  closed_at?: string | null;
+}
+
+export interface CIRunModel {
+  id: string;
+  commit_sha: string;
+  workflow: string;
+  status: 'PENDING' | 'RUNNING' | 'PASSED' | 'FAILED' | 'CANCELLED';
+  started_at: string;
+  completed_at?: string | null;
+  duration_ms: number;
+  tests_total: number;
+  tests_passed: number;
+  tests_failed: number;
+  output_summary?: string | null;
+  artifacts: string[];
+}
+
+export interface ReleaseReadinessModel {
+  commit_sha: string;
+  pr_id?: string | null;
+  overall_state: 'NOT_READY' | 'BLOCKED' | 'READY_FOR_HUMAN_REVIEW' | 'READY_FOR_RELEASE';
+  review_status: 'PENDING' | 'PASSED' | 'FAILED' | 'SKIPPED' | 'ABSTAINED';
+  ci_status: 'PENDING' | 'PASSED' | 'FAILED' | 'SKIPPED' | 'ABSTAINED';
+  lab_status: 'PENDING' | 'PASSED' | 'FAILED' | 'SKIPPED' | 'ABSTAINED';
+  evidence_status: 'PENDING' | 'PASSED' | 'FAILED' | 'SKIPPED' | 'ABSTAINED';
+  blockers: string[];
+  generated_at: string;
+}
+
+
 

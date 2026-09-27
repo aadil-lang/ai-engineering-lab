@@ -14,7 +14,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Compass,
-  Scale
+  Scale,
+  GitBranch
 } from 'lucide-react';
 import { api } from '@/lib/api';
 
@@ -135,6 +136,20 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenLaunchModal }) => {
               <div className="flex items-center space-x-1.5">
                 <Terminal className="h-3.5 w-3.5 text-emerald-400" />
                 <span>Agent Tools</span>
+              </div>
+            </Link>
+
+            <Link
+              href="/lifecycle"
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                pathname === '/lifecycle'
+                  ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+              }`}
+            >
+              <div className="flex items-center space-x-1.5">
+                <GitBranch className="h-3.5 w-3.5 text-cyan-400" />
+                <span>Lifecycle</span>
               </div>
             </Link>
 

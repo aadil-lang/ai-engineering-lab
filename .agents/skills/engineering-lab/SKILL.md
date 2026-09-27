@@ -91,6 +91,14 @@ The Engineering Lab exposes 10 canonical tools via Model Context Protocol (MCP).
 | `diagnose_failure` | `READ_ONLY` | Multi-tier root cause analysis | Strictly distinguish `OBSERVED`, `INFERRED`, `HYPOTHESIZED`. |
 | `get_evidence` | `READ_ONLY` | Cryptographically verified (SHA-256) artifacts | Prefer direct evidence over memory or assumptions. |
 | `get_reliability_summary` | `READ_ONLY` | Longitudinal application risk & defect concentration | Useful for overall risk assessment and testing prioritization. |
+| `get_repository_status` | `READ_ONLY` | Inspect active branch, HEAD commit, clean/dirty state | Track exact commit SHA for verification provenance. |
+| `get_git_diff` | `READ_ONLY` | Retrieve structured file diffs and patches | Examine code changes prior to review and testing. |
+| `get_commit` | `READ_ONLY` | Query commit metadata, author, parent SHA | Never rely on uncommitted local edits for release decisions. |
+| `get_pull_request` | `READ_ONLY` | Query PR branches, status, and AI review findings | Ensure changes requested are addressed before CI/Lab gates. |
+| `get_ci_status` | `READ_ONLY` | Inspect deterministic CI run outcomes and logs | CI verifies code-level units; CI pass does NOT imply Lab pass. |
+| `get_release_readiness` | `READ_ONLY` | Evaluate Review, CI, Lab, and Evidence release gates | READY_FOR_RELEASE means gates passed; does NOT trigger deploy. |
+
+> **Security Restriction**: Only canonical read-oriented tools are exposed. No arbitrary shell, SQL, filesystem, credential, merge, or deployment tools.
 
 For schemas, arguments, and return envelopes, see the [Tool Usage Reference](./references/tool-usage.md).
 
@@ -110,34 +118,61 @@ If the Engineering Lab returns:
 
 ---
 
-## Definition of "Done"
+## 7-Stage Definition of "Done"
 
-Do not conflate implementation completion with verification completion. Every task follows this state progression:
+Do not conflate implementation completion with verification completion. Every engineering task follows this strict 7-stage lifecycle progression:
 
 ```text
-[ IMPLEMENTED ] ──> [ LOCAL_TESTED ] ──> [ LAB_VERIFIED ] ──> [ EVIDENCE_RECORDED ] ──> [ COMPLETE ]
+[ IMPLEMENTED ]
+       │
+       ▼
+[ LOCAL_TESTED ]
+       │
+       ▼
+  [ REVIEWED ]
+       │
+       ▼
+[ CI_VERIFIED ]
+       │
+       ▼
+[ LAB_VERIFIED ]
+       │
+       ▼
+[ EVIDENCE_RECORDED ]
+       │
+       ▼
+[ READY_FOR_HUMAN_RELEASE / COMPLETE ]
 ```
 
-* An agent that only writes code is at `IMPLEMENTED`.
-* An agent that passes local pytest is at `LOCAL_TESTED`.
-* A task is only `COMPLETE` when independent Lab verification produces concrete evidence artifacts recorded in the trace.
+1. **IMPLEMENTED**: Code changes are authored in Antigravity and committed to a Git branch.
+2. **LOCAL_TESTED**: Local developer unit tests pass on the development machine.
+3. **REVIEWED**: AI Code Review has evaluated the PR diff with no blocking critical/high findings.
+4. **CI_VERIFIED**: Deterministic CI pipeline (unit tests, build checks) executes and passes 100%.
+5. **LAB_VERIFIED**: Independent Engineering Lab behavioral test session executes against the running application.
+6. **EVIDENCE_RECORDED**: Forensic artifacts, run logs, and SHA-256 digests are retrieved and linked.
+7. **READY_FOR_HUMAN_RELEASE (COMPLETE)**: Release readiness evaluator confirms all gates passed. Human approval is required before merge or deployment.
 
 ---
 
 ## Evidence-First Engineering Trace
 
-When communicating verification results to the user or recording results, follow the **Observation-Evidence-Interpretation-Action-Result** framework:
+When communicating verification results or recording audit trails, use the complete lifecycle trace:
 
 ```text
-Task: <Verification or fix objective>
-Observation: <What was observed in the application or test output>
-Evidence: <Specific run ID, HTTP status code, error snippet, or SHA-256 artifact digest>
-Interpretation: <Why the failure occurred or why the feature is verified>
-Action: <Code change or test action executed>
-Result: <Independent verification outcome from Engineering Lab>
+Task: <Engineering objective>
+Repository: <Repository name>
+Branch: <Active Git branch>
+Commit: <Target commit SHA>
+Changes: <Changed files and summary of modifications>
+Local Tests: <Local test execution command and result>
+Review: <AI Code Review status and finding counts>
+CI: <Deterministic CI run ID, workflow, and outcome>
+Lab Verification: <Independent Engineering Lab session ID and pass/fail counts>
+Evidence: <Specific run ID, HTTP status code, or SHA-256 artifact digest>
+Release Readiness: <NOT_READY | BLOCKED | READY_FOR_RELEASE>
 ```
 
-> **Note on Agent Transparency**: Do not expose internal chain-of-thought or raw reasoning blocks. Output concise, factual engineering statements backed by evidence.
+> **Note on Agent Transparency**: Never expose internal model chain-of-thought or raw reasoning blocks. Record observable engineering facts, actions, results, and evidence.
 
 For detailed templates and examples, see the [Engineering Trace Template](./references/engineering-trace.md) and [Evidence Policy](./references/evidence-policy.md).
 

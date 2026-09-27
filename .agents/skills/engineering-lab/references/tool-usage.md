@@ -296,6 +296,187 @@ Returns high-level longitudinal risk assessment, aggregate failure concentration
 
 ---
 
+### 2.11 `get_repository_status`
+Retrieves current Git branch, HEAD commit SHA, parent commit SHA, clean/dirty state, and lists of changed or untracked files.
+* **Mode**: `READ_ONLY`
+* **Input Parameters**:
+  ```json
+  {
+    "repository_path": null
+  }
+  ```
+* **Response Envelope Data**:
+  ```json
+  {
+    "status": {
+      "repository": "New project",
+      "branch": "main",
+      "commit_sha": "46d15e9e...",
+      "parent_commit_sha": null,
+      "is_clean": true,
+      "changed_files": [],
+      "untracked_files": []
+    }
+  }
+  ```
+* **Rules**: Track the exact commit SHA for every verification and test execution.
+
+---
+
+### 2.12 `get_git_diff`
+Retrieves structured file diffs, patches, and additions/deletions counts between base and head commits.
+* **Mode**: `READ_ONLY`
+* **Input Parameters**:
+  ```json
+  {
+    "base_sha": "46d15e9e...",
+    "head_sha": "9b12a4f0..."
+  }
+  ```
+* **Response Envelope Data**:
+  ```json
+  {
+    "diff": {
+      "repository": "New project",
+      "base_sha": "46d15e9e...",
+      "head_sha": "9b12a4f0...",
+      "files": [
+        {
+          "path": "backend/app/controllers/inventory.py",
+          "status": "MODIFIED",
+          "additions": 4,
+          "deletions": 1,
+          "patch": "@@ -12,3 +12,6 @@..."
+        }
+      ],
+      "total_additions": 4,
+      "total_deletions": 1
+    }
+  }
+  ```
+
+---
+
+### 2.13 `get_commit`
+Retrieves complete commit details including author, email, timestamp, parent commit SHA, and changed file paths.
+* **Mode**: `READ_ONLY`
+* **Input Parameters**:
+  ```json
+  {
+    "commit_sha": "HEAD"
+  }
+  ```
+* **Response Envelope Data**:
+  ```json
+  {
+    "commit": {
+      "commit_sha": "46d15e9e...",
+      "parent_commit_sha": null,
+      "author": "AI Engineering Lab",
+      "email": "engineering-lab@antigravity.ai",
+      "timestamp": "2026-09-27T06:17:00+00:00",
+      "message": "feat: add inventory validation flow",
+      "files_changed": ["backend/app/controllers/inventory.py"]
+    }
+  }
+  ```
+
+---
+
+### 2.14 `get_pull_request`
+Retrieves Pull Request metadata, branch tracking, head/base commit SHAs, lifecycle status, and associated AI code review findings.
+* **Mode**: `READ_ONLY`
+* **Input Parameters**:
+  ```json
+  {
+    "pr_id": "pr-001"
+  }
+  ```
+* **Response Envelope Data**:
+  ```json
+  {
+    "pull_request": {
+      "id": "pr-001",
+      "repository": "New project",
+      "number": 1,
+      "title": "Add inventory item validation",
+      "source_branch": "feature/inventory-validation",
+      "target_branch": "main",
+      "head_sha": "9b12a4f0...",
+      "base_sha": "46d15e9e...",
+      "status": "OPEN",
+      "created_at": "2026-09-27T06:20:00Z",
+      "updated_at": "2026-09-27T06:20:00Z"
+    },
+    "review": {
+      "review_id": "rev-a1b2c3d4",
+      "status": "APPROVED",
+      "summary": "Code review completed with 0 blocking findings.",
+      "findings": []
+    }
+  }
+  ```
+
+---
+
+### 2.15 `get_ci_status`
+Retrieves deterministic CI run execution status, test counts, logs, and artifacts for a target commit.
+* **Mode**: `READ_ONLY`
+* **Input Parameters**:
+  ```json
+  {
+    "commit_sha": "9b12a4f0..."
+  }
+  ```
+* **Response Envelope Data**:
+  ```json
+  {
+    "commit_sha": "9b12a4f0...",
+    "latest_run": {
+      "id": "ci-849201",
+      "workflow": "pytest_unit",
+      "status": "PASSED",
+      "duration_ms": 1450,
+      "tests_total": 8,
+      "tests_passed": 8,
+      "tests_failed": 0
+    }
+  }
+  ```
+* **Rules**: Deterministic CI execution cannot be overridden by agent speculation.
+
+---
+
+### 2.16 `get_release_readiness`
+Evaluates all four gating criteria (Review, CI, Lab verification, Evidence) for release readiness.
+* **Mode**: `READ_ONLY`
+* **Input Parameters**:
+  ```json
+  {
+    "commit_sha": "9b12a4f0...",
+    "pr_id": "pr-001"
+  }
+  ```
+* **Response Envelope Data**:
+  ```json
+  {
+    "readiness": {
+      "commit_sha": "9b12a4f0...",
+      "pr_id": "pr-001",
+      "overall_state": "READY_FOR_RELEASE",
+      "review_status": "PASSED",
+      "ci_status": "PASSED",
+      "lab_status": "PASSED",
+      "evidence_status": "PASSED",
+      "blockers": [],
+      "generated_at": "2026-09-27T06:25:00Z"
+    }
+  }
+  ```
+* **Rules**: `READY_FOR_RELEASE` indicates all gates passed; human approval is required before merge or deployment.
+
+---
+
 ## 3. Structured Error Handling
 
 When a tool call encounters an error, it returns a standard `ToolErrorPayload` inside the envelope:

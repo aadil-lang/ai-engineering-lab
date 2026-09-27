@@ -47,6 +47,20 @@ from backend.app.models.tools import (
     GetReliabilitySummaryRequest,
     GetReliabilitySummaryResponse,
 )
+from backend.app.models.lifecycle_tools import (
+    GetRepositoryStatusRequest,
+    GetRepositoryStatusResponse,
+    GetGitDiffRequest,
+    GetGitDiffResponse,
+    GetCommitRequest,
+    GetCommitResponse,
+    GetPullRequestRequest,
+    GetPullRequestResponse,
+    GetCIStatusRequest,
+    GetCIStatusResponse,
+    GetReleaseReadinessRequest,
+    GetReleaseReadinessResponse,
+)
 from backend.app.control_plane.context import ToolInvocationContext
 from backend.app.control_plane.errors import (
     ApplicationNotFoundError,
@@ -74,7 +88,11 @@ class ReliabilityControlPlane:
     Independent of transport protocols (REST / MCP).
     """
 
-    def __init__(self, db_path: str = "backend/data/reliability_platform.db"):
+    def __init__(
+        self,
+        db_path: str = "backend/data/reliability_platform.db",
+        enable_lifecycle_tools: bool = False,
+    ):
         self.db_path = db_path
         self.repo = SQLiteRepository(db_path=db_path)
         self.target_service = TargetService(self.repo)
@@ -106,6 +124,17 @@ class ReliabilityControlPlane:
         # Initialize Tool Registry
         self.registry = ToolRegistry()
         self._register_all_tools()
+
+        # Lifecycle Services
+        self.git_service = None
+        self.lifecycle_repo = None
+        self.pr_service = None
+        self.review_service = None
+        self.ci_service = None
+        self.release_service = None
+
+        if enable_lifecycle_tools or os.environ.get("ENABLE_LIFECYCLE_TOOLS") == "1":
+            self.register_lifecycle_tools()
 
     def _register_all_tools(self):
         """Registers the 10 canonical agent tools into the registry."""
@@ -725,3 +754,182 @@ class ReliabilityControlPlane:
             top_risks=risks,
             recommended_next_actions=actions,
         )
+
+    # -------------------------------------------------------------------------
+    # Slice 7.5 — Git / PR / CI Lifecycle Tools Registration and Handlers
+    # -------------------------------------------------------------------------
+
+    def register_lifecycle_tools(
+        self,
+        git_service=None,
+        pr_service=None,
+        review_service=None,
+        ci_service=None,
+        release_service=None,
+    ):
+        """Registers the 6 canonical read-oriented lifecycle tools into the registry."""
+        from backend.app.git.service import GitService
+        from backend.app.lifecycle.repository import LifecycleRepository
+        from backend.app.lifecycle.pr_service import PRService
+        from backend.app.lifecycle.review_service import AICodeReviewService
+        from backend.app.lifecycle.ci_service import CIService
+        from backend.app.lifecycle.release_service import ReleaseReadinessService
+
+        self.git_service = git_service or GitService()
+        self.lifecycle_repo = LifecycleRepository(db_path=self.db_path)
+        self.pr_service = pr_service or PRService(repository=self.lifecycle_repo, git_service=self.git_service)
+        self.review_service = review_service or AICodeReviewService(repository=self.lifecycle_repo)
+        self.ci_service = ci_service or CIService(repository=self.lifecycle_repo)
+        self.release_service = release_service or ReleaseReadinessService(repository=self.lifecycle_repo, control_plane=self)
+
+        # Tool 11: get_repository_status (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_repository_status",
+                description="Get current Git repository status, active branch, HEAD commit SHA, and changed files.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetRepositoryStatusRequest,
+                response_model=GetRepositoryStatusResponse,
+                handler=self.get_repository_status,
+                version="1.0",
+            )
+        )
+
+        # Tool 12: get_git_diff (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_git_diff",
+                description="Get structured Git diff between base and head commits, including per-file patches and additions/deletions.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetGitDiffRequest,
+                response_model=GetGitDiffResponse,
+                handler=self.get_git_diff,
+                version="1.0",
+            )
+        )
+
+        # Tool 13: get_commit (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_commit",
+                description="Get detailed metadata, author, parent SHA, and changed files for a specific Git commit.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetCommitRequest,
+                response_model=GetCommitResponse,
+                handler=self.get_commit,
+                version="1.0",
+            )
+        )
+
+        # Tool 14: get_pull_request (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_pull_request",
+                description="Get Pull Request details, branches, lifecycle status, and AI review findings.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetPullRequestRequest,
+                response_model=GetPullRequestResponse,
+                handler=self.get_pull_request,
+                version="1.0",
+            )
+        )
+
+        # Tool 15: get_ci_status (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_ci_status",
+                description="Get deterministic CI run execution status, test counts, logs, and artifacts for a commit.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetCIStatusRequest,
+                response_model=GetCIStatusResponse,
+                handler=self.get_ci_status,
+                version="1.0",
+            )
+        )
+
+        # Tool 16: get_release_readiness (READ_ONLY)
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_release_readiness",
+                description="Evaluate release readiness across Review, CI, Lab verification, and Evidence gates.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetReleaseReadinessRequest,
+                response_model=GetReleaseReadinessResponse,
+                handler=self.get_release_readiness,
+                version="1.0",
+            )
+        )
+
+    def get_repository_status(
+        self,
+        req: GetRepositoryStatusRequest,
+        context: ToolInvocationContext,
+    ) -> GetRepositoryStatusResponse:
+        """Tool 11: get_repository_status."""
+        if not self.git_service:
+            from backend.app.git.service import GitService
+            self.git_service = GitService(repo_path=req.repository_path)
+        status = self.git_service.get_status()
+        return GetRepositoryStatusResponse(status=status)
+
+    def get_git_diff(
+        self,
+        req: GetGitDiffRequest,
+        context: ToolInvocationContext,
+    ) -> GetGitDiffResponse:
+        """Tool 12: get_git_diff."""
+        if not self.git_service:
+            from backend.app.git.service import GitService
+            self.git_service = GitService()
+        diff = self.git_service.get_diff(base_sha=req.base_sha, head_sha=req.head_sha)
+        return GetGitDiffResponse(diff=diff)
+
+    def get_commit(
+        self,
+        req: GetCommitRequest,
+        context: ToolInvocationContext,
+    ) -> GetCommitResponse:
+        """Tool 13: get_commit."""
+        if not self.git_service:
+            from backend.app.git.service import GitService
+            self.git_service = GitService()
+        commit = self.git_service.get_commit(req.commit_sha)
+        return GetCommitResponse(commit=commit)
+
+    def get_pull_request(
+        self,
+        req: GetPullRequestRequest,
+        context: ToolInvocationContext,
+    ) -> GetPullRequestResponse:
+        """Tool 14: get_pull_request."""
+        if not self.pr_service:
+            from backend.app.lifecycle.pr_service import PRService
+            self.pr_service = PRService()
+        pr = self.pr_service.get_pr(req.pr_id)
+        review = self.pr_service.repo.get_review_by_pr(req.pr_id) if pr else None
+        return GetPullRequestResponse(pull_request=pr, review=review)
+
+    def get_ci_status(
+        self,
+        req: GetCIStatusRequest,
+        context: ToolInvocationContext,
+    ) -> GetCIStatusResponse:
+        """Tool 15: get_ci_status."""
+        if not self.ci_service:
+            from backend.app.lifecycle.ci_service import CIService
+            self.ci_service = CIService()
+        latest = self.ci_service.get_latest_for_commit(req.commit_sha)
+        return GetCIStatusResponse(commit_sha=req.commit_sha, latest_run=latest)
+
+    def get_release_readiness(
+        self,
+        req: GetReleaseReadinessRequest,
+        context: ToolInvocationContext,
+    ) -> GetReleaseReadinessResponse:
+        """Tool 16: get_release_readiness."""
+        if not self.release_service:
+            from backend.app.lifecycle.release_service import ReleaseReadinessService
+            self.release_service = ReleaseReadinessService(control_plane=self)
+        readiness = self.release_service.evaluate_readiness(commit_sha=req.commit_sha, pr_id=req.pr_id)
+        return GetReleaseReadinessResponse(readiness=readiness)
+

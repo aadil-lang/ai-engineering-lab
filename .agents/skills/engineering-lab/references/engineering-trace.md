@@ -6,42 +6,57 @@ The **Engineering Trace** is the standard factual reporting structure used by An
 
 ---
 
-## 1. Standard Engineering Trace Schema
+## 1. Full Lifecycle Engineering Trace Schema
 
 ```text
 ======================================================================
-ENGINEERING VERIFICATION TRACE
+ENGINEERING LIFECYCLE VERIFICATION TRACE
 ======================================================================
 TASK:               <Brief description of objective>
-APPLICATION:        <app_inventory | app_eda | app_booking>
+REPOSITORY:         <Repository name or directory>
+BRANCH:             <Active Git branch>
+COMMIT:             <Target Git commit SHA (40 chars)>
+PARENT COMMIT:      <Parent commit SHA>
 TIMESTAMP:          <ISO-8601 UTC timestamp>
-STATUS:             <IN_PROGRESS | VERIFIED | FAILED | INCONCLUSIVE>
 
-1. OBSERVATION
-   - Tool Invoked:   <inspect_application | get_application_health | list_failures | etc.>
-   - Input Payload:  <JSON arguments provided to MCP tool>
-   - Output Status:  <SUCCESS | ABSTAINED | ERROR>
-   - Findings:       <Summary of telemetry or discovered application state>
+1. CHANGES & REPOSITORY POSTURE
+   - Clean / Dirty:  <CLEAN | DIRTY>
+   - Changed Files:  <List of modified / added files>
+   - Diff Summary:   <+X additions, -Y deletions>
 
-2. EVIDENCE
-   - Run/Session ID: <Unique execution ID>
+2. LOCAL DEVELOPER TESTS
+   - Command:        <python -m pytest ... | npm test>
+   - Result:         <PASSED (N tests passed in Xs) | FAILED>
+
+3. AI CODE REVIEW
+   - Review Status:  <APPROVED | CHANGES_REQUESTED>
+   - Findings:       <Summary of findings by category and epistemic status>
+   - Critical/High:  <Count of blocking issues>
+
+4. DETERMINISTIC CI EXECUTION
+   - Workflow:       <pytest_unit | npm_build | full_ci>
+   - CI Status:      <PASSED | FAILED>
+   - Tests Executed: <Total tests, passed, failed>
+   - CI Artifacts:   <Log path or SHA-256 digest>
+
+5. INDEPENDENT ENGINEERING LAB VERIFICATION
+   - Tool Invoked:   start_test_session
+   - Idempotency:    <Unique session idempotency key>
+   - Lab Status:     <VERIFIED | FAILED | ABSTAINED>
+   - Runs Summary:   <Total runs, passed, failed, duration_ms>
+
+6. FORENSIC EVIDENCE & DIGESTS
+   - Session ID:     <Lab session identifier>
    - Artifacts:      <Failure ID, DOM digest, HTTP status, or SHA-256 hash>
    - Epistemic Tier: <OBSERVED | INFERRED | HYPOTHESIZED>
 
-3. INTERPRETATION & DECISION
-   - Analysis:       <Why the issue occurred or why behavior is sound>
-   - Decision:       <Patch required | Re-test required | Conclude verification>
-
-4. ACTION TAKEN
-   - Code Patched:   <File path and concise description of change>
-   - Local Tests:    <Local test command and result (e.g., pytest 4 passed)>
-
-5. INDEPENDENT VERIFICATION
-   - Tool Invoked:   <start_test_session>
-   - Idempotency:    <New unique idempotency key>
-   - Outcome:        <COMPLETED: 2/2 passed, 0 failed | FAILED>
-   - Evidence Hash:  <SHA-256 verification hash or session ID>
-   - Final Verdict:  <VERIFIED | REMEDIATION_REQUIRED | INCONCLUSIVE>
+7. RELEASE READINESS EVALUATION
+   - Gate 1 (Review):   <PASSED | FAILED | SKIPPED>
+   - Gate 2 (CI):       <PASSED | FAILED>
+   - Gate 3 (Lab):      <PASSED | FAILED | ABSTAINED>
+   - Gate 4 (Evidence): <PASSED | PENDING>
+   - Blockers:          <None | List of active release blockers>
+   - FINAL VERDICT:     <READY_FOR_RELEASE | BLOCKED | NOT_READY>
 ======================================================================
 ```
 
