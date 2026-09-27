@@ -1,0 +1,44 @@
+[
+  {
+    "target_id": "tgt_demo_shop",
+    "name": "AutoShop NextGen E-Commerce",
+    "target_type": "WEB_APPLICATION",
+    "base_url": "https://demo-autoshop.internal",
+    "environment": "staging",
+    "version": "2.4.1",
+    "description": "Modern e-commerce platform with AI recommendation engine and checkout workflows",
+    "metadata": {
+      "framework": "Next.js 14",
+      "auth_mode": "OAuth2 / JWT",
+      "critical_paths": ["/checkout", "/search", "/assistant"]
+    }
+  },
+  {
+    "target_id": "tgt_enterprise_crm",
+    "name": "OmniFlow AI Enterprise CRM",
+    "target_type": "WEB_APPLICATION",
+    "base_url": "https://crm.omniflow.internal",
+    "environment": "production-canary",
+    "version": "4.1.0",
+    "description": "Enterprise customer management platform with autonomous sales copilots",
+    "metadata": {
+      "framework": "React / FastAPI",
+      "auth_mode": "SAML SSO",
+      "critical_paths": ["/leads", "/pipeline", "/copilot"]
+    }
+  },
+  {
+    "target_id": "tgt_rag_copilot_api",
+    "name": "KnowledgeGraph RAG Agent API",
+    "target_type": "LLM_AGENT",
+    "base_url": "https://agent-api.internal/v1/query",
+    "environment": "staging",
+    "version": "1.2.0",
+    "description": "Vector-grounded AI search and question-answering agent",
+    "metadata": {
+      "framework": "FastAPI / LangChain",
+      "llm_engine": "Qwen2.5-Coder 7B",
+      "critical_paths": ["/v1/chat", "/v1/search", "/v1/feedback"]
+    }
+  }
+]

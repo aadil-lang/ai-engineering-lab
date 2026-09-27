@@ -1,0 +1,17 @@
+[
+  {
+    "event": "request",
+    "url": "file:///C:/Users/HP/AppData/Local/Temp/tmpa169tq32/test_api_page.html",
+    "method": "GET",
+    "resource_type": "document",
+    "timestamp": "2026-09-24T10:22:36.100156+00:00"
+  },
+  {
+    "event": "response",
+    "url": "file:///C:/Users/HP/AppData/Local/Temp/tmpa169tq32/test_api_page.html",
+    "status": 200,
+    "status_text": "OK",
+    "ok": true,
+    "timestamp": "2026-09-24T10:22:36.114073+00:00"
+  }
+]

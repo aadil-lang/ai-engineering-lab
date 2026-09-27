@@ -1,0 +1,17 @@
+[
+  {
+    "event": "request",
+    "url": "file:///C:/Users/HP/AppData/Local/Temp/tmplb4gmris/test_api_page.html",
+    "method": "GET",
+    "resource_type": "document",
+    "timestamp": "2026-09-24T15:27:31.421354+00:00"
+  },
+  {
+    "event": "response",
+    "url": "file:///C:/Users/HP/AppData/Local/Temp/tmplb4gmris/test_api_page.html",
+    "status": 200,
+    "status_text": "OK",
+    "ok": true,
+    "timestamp": "2026-09-24T15:27:31.425353+00:00"
+  }
+]

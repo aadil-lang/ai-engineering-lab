@@ -1,0 +1,17 @@
+[
+  {
+    "event": "request",
+    "url": "file:///C:/Users/HP/AppData/Local/Temp/tmpa2apy2b8/test_api_page.html",
+    "method": "GET",
+    "resource_type": "document",
+    "timestamp": "2026-09-24T13:38:23.554720+00:00"
+  },
+  {
+    "event": "response",
+    "url": "file:///C:/Users/HP/AppData/Local/Temp/tmpa2apy2b8/test_api_page.html",
+    "status": 200,
+    "status_text": "OK",
+    "ok": true,
+    "timestamp": "2026-09-24T13:38:23.561995+00:00"
+  }
+]

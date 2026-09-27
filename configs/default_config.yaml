@@ -1,0 +1,52 @@
+platform:
+  name: "AI Application Reliability & Predictive QA Platform"
+  version: "0.1.0"
+  environment: "local-dev"
+
+server:
+  host: "127.0.0.1"
+  port: 8000
+  reload: true
+
+database:
+  engine: "sqlite"
+  path: "data/reliability_platform.db"
+
+execution_engine:
+  default_runner: "mock_runner"
+  action_delay_ms: 200
+  timeout_seconds: 60
+
+test_modes:
+  - id: "FUNCTIONAL_QA"
+    name: "Functional QA"
+    description: "Deterministic workflow verification and assertion checking"
+  - id: "EXPLORATORY_DOGFOODING"
+    name: "Exploratory Dogfooding"
+    description: "Autonomous exploration detecting UI glitches, broken flows, and edge cases"
+  - id: "UX_UI_REVIEW"
+    name: "UX/UI Review"
+    description: "Visual accessibility (WCAG AA), responsive layout, and interaction polish"
+  - id: "AI_LLM_EVALUATION"
+    name: "AI/LLM Evaluation"
+    description: "Grounding, hallucination detection, prompt injection resilience, and RAG validation"
+  - id: "REGRESSION_QA"
+    name: "Regression QA"
+    description: "Continuous regression testing against baseline golden flows"
+
+assessment_dimensions:
+  - "RELIABILITY"
+  - "PERFORMANCE"
+  - "LOAD_CAPACITY"
+  - "FAILURE_RECOVERY"
+  - "SECURITY"
+  - "RESOURCE_BEHAVIOR"
+  - "OBSERVABILITY"
+  - "AI_RELIABILITY"
+  - "MAINTAINABILITY"
+
+llm:
+  provider: "ollama"
+  endpoint: "http://localhost:11434"
+  model: "qwen2.5-coder:7b"
+  temperature: 0.1

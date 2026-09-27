@@ -1,0 +1,17 @@
+[
+  {
+    "event": "request",
+    "url": "file:///C:/Users/HP/AppData/Local/Temp/tmpd_c_moip/test_api_page.html",
+    "method": "GET",
+    "resource_type": "document",
+    "timestamp": "2026-09-24T12:59:34.455912+00:00"
+  },
+  {
+    "event": "response",
+    "url": "file:///C:/Users/HP/AppData/Local/Temp/tmpd_c_moip/test_api_page.html",
+    "status": 200,
+    "status_text": "OK",
+    "ok": true,
+    "timestamp": "2026-09-24T12:59:34.461562+00:00"
+  }
+]

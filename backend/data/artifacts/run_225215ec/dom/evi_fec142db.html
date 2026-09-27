@@ -1,0 +1,552 @@
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8">
+  <title>Enterprise Asset &amp; Inventory Management</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --border-color: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --primary-hover: #0284c7;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 2rem;
+      min-height: 100vh;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 1rem;
+    }
+    h1 { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
+    .badge {
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-success { background: #064e3b; color: #34d399; }
+    .badge-warning { background: #78350f; color: #fbbf24; }
+    .badge-danger { background: #7f1d1d; color: #f87171; }
+    
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem 1.5rem;
+    }
+    .stat-card .label { font-size: 0.85rem; color: var(--text-muted); }
+    .stat-card .val { font-size: 1.5rem; font-weight: bold; margin-top: 0.25rem; }
+    
+    .table-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .table-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th {
+      background: #0f172a;
+      padding: 0.75rem 1.5rem;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
+    }
+    td {
+      padding: 0.85rem 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.9rem;
+    }
+    tr:hover { background: rgba(255,255,255,0.02); }
+    
+    button {
+      cursor: pointer;
+      font-family: inherit;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #0f172a;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      font-weight: 600;
+    }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary {
+      background: #334155;
+      color: var(--text-main);
+      border: none;
+      padding: 0.4rem 0.8rem;
+      font-size: 0.8rem;
+    }
+    .btn-secondary:hover { background: #475569; }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      width: 480px;
+      padding: 1.5rem;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .modal h2 { margin-bottom: 1rem; font-size: 1.25rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 0.35rem;
+      color: var(--text-muted);
+    }
+    .form-group input {
+      width: 100%;
+      padding: 0.6rem;
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: white;
+      font-size: 0.9rem;
+    }
+    .error-msg {
+      color: var(--danger);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      display: none;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+    }
+    
+    /* Toast */
+    #toast-notification {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: #064e3b;
+      color: #34d399;
+      border: 1px solid #059669;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      display: none;
+      font-weight: 500;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1 id="app-title">Industrial Inventory &amp; Asset Management</h1>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Live CRUD Workflow &amp; Asset Status Operations</p>
+    </div>
+    <div>
+      <span class="badge badge-success" id="service-status">ONLINE (Port 8089)</span>
+    </div>
+  </header>
+
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="label">Total Managed SKUs</div>
+      <div class="val" id="stat-total-skus">11</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Low Stock Alerts</div>
+      <div class="val" id="stat-low-stock" style="color: var(--warning);">1</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Total Stock Quantity</div>
+      <div class="val" id="stat-total-quantity">465</div>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <div class="table-header-row">
+      <h2 style="font-size: 1.1rem;">Inventory Catalogue</h2>
+      <div style="display: flex; gap: 1rem; align-items: center;">
+        <input type="text" id="search-input" placeholder="Search catalogue..." oninput="filterInventory(this.value)" style="padding: 0.45rem 0.85rem; border-radius: 6px; border: 1px solid var(--border-color); background: #090d16; color: white; font-size: 0.85rem;">
+        <button class="btn-primary" id="btn-add-item" onclick="openAddModal()">+ Add New Item</button>
+      </div>
+    </div>
+    <table id="inventory-table">
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Name</th>
+          <th>Category</th>
+          <th>Stock Quantity</th>
+          <th>Unit Price</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="inventory-tbody"><tr id="row-SKU-1001">
+          <td style="font-family: monospace; font-weight: 600;">SKU-1001</td>
+          <td class="col-name">Titanium Hex Bolt M8</td>
+          <td>Fasteners</td>
+          <td class="col-quantity" id="qty-SKU-1001">120</td>
+          <td>$4.50</td>
+          <td><span class="badge badge-success">IN_STOCK</span></td>
+          <td>
+            <button class="btn-secondary" id="btn-edit-item-SKU-1001" onclick="openEditModal('SKU-1001', 'Titanium Hex Bolt M8', 120)">Edit</button>
+          </td>
+        </tr><tr id="row-SKU-1002">
+          <td style="font-family: monospace; font-weight: 600;">SKU-1002</td>
+          <td class="col-name">Steel Ball Bearing 608RS</td>
+          <td>Bearings</td>
+          <td class="col-quantity" id="qty-SKU-1002">45</td>
+          <td>$12.80</td>
+          <td><span class="badge badge-success">IN_STOCK</span></td>
+          <td>
+            <button class="btn-secondary" id="btn-edit-item-SKU-1002" onclick="openEditModal('SKU-1002', 'Steel Ball Bearing 608RS', 45)">Edit</button>
+          </td>
+        </tr><tr id="row-SKU-1003">
+          <td style="font-family: monospace; font-weight: 600;">SKU-1003</td>
+          <td class="col-name">Pneumatic Solenoid Valve</td>
+          <td>Pneumatics</td>
+          <td class="col-quantity" id="qty-SKU-1003">8</td>
+          <td>$85.00</td>
+          <td><span class="badge badge-warning">LOW_STOCK</span></td>
+          <td>
+            <button class="btn-secondary" id="btn-edit-item-SKU-1003" onclick="openEditModal('SKU-1003', 'Pneumatic Solenoid Valve', 8)">Edit</button>
+          </td>
+        </tr><tr id="row-SKU-1004">
+          <td style="font-family: monospace; font-weight: 600;">SKU-1004</td>
+          <td class="col-name">Linear Optical Shaft 12mm</td>
+          <td>Linear Motion</td>
+          <td class="col-quantity" id="qty-SKU-1004">22</td>
+          <td>$34.20</td>
+          <td><span class="badge badge-success">IN_STOCK</span></td>
+          <td>
+            <button class="btn-secondary" id="btn-edit-item-SKU-1004" onclick="openEditModal('SKU-1004', 'Linear Optical Shaft 12mm', 22)">Edit</button>
+          </td>
+        </tr><tr id="row-SKU-1005">
+          <td style="font-family: monospace; font-weight: 600;">SKU-1005</td>
+          <td class="col-name">Flexible Shaft Coupler</td>
+          <td>Couplings</td>
+          <td class="col-quantity" id="qty-SKU-1005">60</td>
+          <td>$15.75</td>
+          <td><span class="badge badge-success">IN_STOCK</span></td>
+          <td>
+            <button class="btn-secondary" id="btn-edit-item-SKU-1005" onclick="openEditModal('SKU-1005', 'Flexible Shaft Coupler', 60)">Edit</button>
+          </td>
+        </tr><tr id="row-SKU-M-37FB2">
+          <td style="font-family: monospace; font-weight: 600;">SKU-M-37FB2</td>
+          <td class="col-name">Precision Servo Actuator</td>
+          <td>Actuators</td>
+          <td class="col-quantity" id="qty-SKU-M-37FB2">45</td>
+          <td>$45.00</td>
+          <td><span class="badge badge-success">IN_STOCK</span></td>
+          <td>
+            <button class="btn-secondary" id="btn-edit-item-SKU-M-37FB2" onclick="openEditModal('SKU-M-37FB2', 'Precision Servo Actuator', 45)">Edit</button>
+          </td>
+        </tr><tr id="row-SKU-V-32A7F">
+          <td style="font-family: monospace; font-weight: 600;">SKU-V-32A7F</td>
+          <td class="col-name">Optical Sensor Head</td>
+          <td>Mechanical</td>
+          <td class="col-quantity" id="qty-SKU-V-32A7F">25</td>
+          <td>$25.00</td>
+          <td><span class="badge badge-success">IN_STOCK</span></td>
+          <td>
+            <button class="btn-secondary" id="btn-edit-item-SKU-V-32A7F" onclick="openEditModal('SKU-V-32A7F', 'Optical Sensor Head', 25)">Edit</button>
+          </td>
+        </tr><tr id="row-SKU-M-6C89F">
+          <td style="font-family: monospace; font-weight: 600;">SKU-M-6C89F</td>
+          <td class="col-name">Precision Servo Actuator</td>
+          <td>Actuators</td>
+          <td class="col-quantity" id="qty-SKU-M-6C89F">45</td>
+          <td>$45.00</td>
+          <td><span class="badge badge-success">IN_STOCK</span></td>
+          <td>
+            <button class="btn-secondary" id="btn-edit-item-SKU-M-6C89F" onclick="openEditModal('SKU-M-6C89F', 'Precision Servo Actuator', 45)">Edit</button>
+          </td>
+        </tr><tr id="row-SKU-V-EC2EE">
+          <td style="font-family: monospace; font-weight: 600;">SKU-V-EC2EE</td>
+          <td class="col-name">Optical Sensor Head</td>
+          <td>Mechanical</td>
+          <td class="col-quantity" id="qty-SKU-V-EC2EE">25</td>
+          <td>$25.00</td>
+          <td><span class="badge badge-success">IN_STOCK</span></td>
+          <td>
+            <button class="btn-secondary" id="btn-edit-item-SKU-V-EC2EE" onclick="openEditModal('SKU-V-EC2EE', 'Optical Sensor Head', 25)">Edit</button>
+          </td>
+        </tr><tr id="row-SKU-M-3A328">
+          <td style="font-family: monospace; font-weight: 600;">SKU-M-3A328</td>
+          <td class="col-name">Precision Servo Actuator</td>
+          <td>Actuators</td>
+          <td class="col-quantity" id="qty-SKU-M-3A328">45</td>
+          <td>$45.00</td>
+          <td><span class="badge badge-success">IN_STOCK</span></td>
+          <td>
+            <button class="btn-secondary" id="btn-edit-item-SKU-M-3A328" onclick="openEditModal('SKU-M-3A328', 'Precision Servo Actuator', 45)">Edit</button>
+          </td>
+        </tr><tr id="row-SKU-V-25B4C">
+          <td style="font-family: monospace; font-weight: 600;">SKU-V-25B4C</td>
+          <td class="col-name">Optical Sensor Head</td>
+          <td>Mechanical</td>
+          <td class="col-quantity" id="qty-SKU-V-25B4C">25</td>
+          <td>$25.00</td>
+          <td><span class="badge badge-success">IN_STOCK</span></td>
+          <td>
+            <button class="btn-secondary" id="btn-edit-item-SKU-V-25B4C" onclick="openEditModal('SKU-V-25B4C', 'Optical Sensor Head', 25)">Edit</button>
+          </td>
+        </tr></tbody>
+    </table>
+  </div>
+
+  <!-- Add Item Modal -->
+  <div class="modal-overlay" id="modal-add-item">
+    <div class="modal">
+      <h2>Add Inventory Item</h2>
+      <form id="form-add-item" onsubmit="event.preventDefault(); submitAddItem();">
+        <div class="form-group">
+          <label for="input-sku">Part SKU *</label>
+          <input type="text" id="input-sku" placeholder="e.g. SKU-9921">
+          <div class="error-msg" id="sku-error">SKU is required and must be unique.</div>
+        </div>
+        <div class="form-group">
+          <label for="input-name">Item Name *</label>
+          <input type="text" id="input-name" placeholder="e.g. Hydraulic Actuator">
+          <div class="error-msg" id="name-error">Item name is required.</div>
+        </div>
+        <div class="form-group">
+          <label for="input-category">Category</label>
+          <input type="text" id="input-category" placeholder="e.g. Mechanical" value="Mechanical">
+        </div>
+        <div class="form-group">
+          <label for="input-quantity">Initial Stock Quantity *</label>
+          <input type="number" id="input-quantity" value="10">
+          <div class="error-msg" id="quantity-error">Quantity cannot be negative.</div>
+        </div>
+        <div class="form-group">
+          <label for="input-price">Unit Price ($) *</label>
+          <input type="number" step="0.01" id="input-price" value="25.00">
+          <div class="error-msg" id="price-error">Price cannot be negative.</div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="btn-cancel-item" onclick="closeAddModal()">Cancel</button>
+          <button type="submit" class="btn-primary" id="btn-submit-item">Create Item</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Item Modal -->
+  <div class="modal-overlay" id="modal-edit-item">
+    <div class="modal">
+      <h2>Edit Item Stock</h2>
+      <form id="form-edit-item" onsubmit="event.preventDefault(); submitEditItem();">
+        <input type="hidden" id="edit-sku">
+        <div class="form-group">
+          <label>Item Name</label>
+          <div id="edit-item-name" style="font-weight: 600; margin-bottom: 0.5rem;"></div>
+        </div>
+        <div class="form-group">
+          <label for="input-edit-quantity">Updated Stock Quantity *</label>
+          <input type="number" id="input-edit-quantity">
+          <div class="error-msg" id="edit-quantity-error">Quantity cannot be negative.</div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" onclick="closeEditModal()">Cancel</button>
+          <button type="submit" class="btn-primary" id="btn-save-edit">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast-notification">Operation completed successfully</div>
+
+  <script>
+    async function fetchInventory() {
+      const res = await fetch('/api/inventory');
+      const data = await res.json();
+      renderTable(data);
+      updateStats(data);
+    }
+
+    function renderTable(items) {
+      const tbody = document.getElementById('inventory-tbody');
+      tbody.innerHTML = '';
+      items.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.id = `row-${item.sku}`;
+        const badgeClass = item.status === 'IN_STOCK' ? 'badge-success' : (item.status === 'LOW_STOCK' ? 'badge-warning' : 'badge-danger');
+        tr.innerHTML = `
+          <td style="font-family: monospace; font-weight: 600;">${item.sku}</td>
+          <td class="col-name">${item.name}</td>
+          <td>${item.category}</td>
+          <td class="col-quantity" id="qty-${item.sku}">${item.quantity}</td>
+          <td>$${parseFloat(item.unit_price).toFixed(2)}</td>
+          <td><span class="badge ${badgeClass}">${item.status}</span></td>
+          <td>
+            <button class="btn-secondary" id="btn-edit-item-${item.sku}" onclick="openEditModal('${item.sku}', '${item.name.replace(/'/g, "\\'")}', ${item.quantity})">Edit</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateStats(items) {
+      document.getElementById('stat-total-skus').innerText = items.length;
+      const lowStock = items.filter(i => i.status === 'LOW_STOCK' || i.quantity < 10).length;
+      document.getElementById('stat-low-stock').innerText = lowStock;
+      const totalQty = items.reduce((acc, cur) => acc + cur.quantity, 0);
+      document.getElementById('stat-total-quantity').innerText = totalQty;
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast-notification');
+      t.innerText = msg;
+      t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, 3000);
+    }
+
+    function openAddModal() {
+      document.getElementById('input-sku').value = '';
+      document.getElementById('input-name').value = '';
+      document.getElementById('input-quantity').value = '10';
+      document.getElementById('input-price').value = '25.00';
+      hideErrors();
+      document.getElementById('modal-add-item').style.display = 'flex';
+    }
+
+    function closeAddModal() {
+      document.getElementById('modal-add-item').style.display = 'none';
+      hideErrors();
+    }
+
+    function hideErrors() {
+      document.getElementById('sku-error').style.display = 'none';
+      document.getElementById('name-error').style.display = 'none';
+      document.getElementById('quantity-error').style.display = 'none';
+      document.getElementById('price-error').style.display = 'none';
+    }
+
+    async function submitAddItem() {
+      hideErrors();
+      const sku = document.getElementById('input-sku').value.trim();
+      const name = document.getElementById('input-name').value.trim();
+      const category = document.getElementById('input-category').value.trim() || 'General';
+      const quantity = parseInt(document.getElementById('input-quantity').value, 10);
+      const price = parseFloat(document.getElementById('input-price').value);
+
+      let hasError = false;
+      if (!sku) {
+        document.getElementById('sku-error').style.display = 'block';
+        hasError = true;
+      }
+      if (!name) {
+        document.getElementById('name-error').style.display = 'block';
+        hasError = true;
+      }
+      if (isNaN(quantity) || quantity < 0) {
+        document.getElementById('quantity-error').style.display = 'block';
+        hasError = true;
+      }
+      if (isNaN(price) || price < 0) {
+        document.getElementById('price-error').style.display = 'block';
+        hasError = true;
+      }
+
+      if (hasError) return;
+
+      const res = await fetch('/api/inventory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sku, name, category, quantity, unit_price: price })
+      });
+
+      if (res.ok) {
+        closeAddModal();
+        showToast(`Item ${name} (${sku}) created successfully!`);
+        fetchInventory();
+      } else {
+        const err = await res.json();
+        alert(err.detail || 'Failed to create item');
+      }
+    }
+
+    function openEditModal(sku, name, qty) {
+      document.getElementById('edit-sku').value = sku;
+      document.getElementById('edit-item-name').innerText = name + ' (' + sku + ')';
+      document.getElementById('input-edit-quantity').value = qty;
+      document.getElementById('edit-quantity-error').style.display = 'none';
+      document.getElementById('modal-edit-item').style.display = 'flex';
+    }
+
+    function closeEditModal() {
+      document.getElementById('modal-edit-item').style.display = 'none';
+    }
+
+    async function submitEditItem() {
+      const sku = document.getElementById('edit-sku').value;
+      const qty = parseInt(document.getElementById('input-edit-quantity').value, 10);
+      if (isNaN(qty) || qty < 0) {
+        document.getElementById('edit-quantity-error').style.display = 'block';
+        return;
+      }
+      const res = await fetch(`/api/inventory/${sku}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: qty })
+      });
+      if (res.ok) {
+        closeEditModal();
+        showToast(`Item ${sku} updated to quantity ${qty}!`);
+        fetchInventory();
+      } else {
+        alert('Failed to update item');
+      }
+    }
+
+    function filterInventory(term) {
+      const q = (term || '').toLowerCase();
+      document.querySelectorAll('#inventory-tbody tr').forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(q) ? '' : 'none';
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', fetchInventory);
+  </script>
+
+
+</body></html>

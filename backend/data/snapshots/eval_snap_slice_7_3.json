@@ -1,0 +1,39 @@
+{
+  "slice": "7.3",
+  "description": "Slice 7.3 Integration Verification Snapshot (Transport & Tool Contract Verification)",
+  "parent_slice": "7.2",
+  "timestamp": "2026-09-25T19:21:18.442810+00:00",
+  "mcp_sdk_version": "2.2.0",
+  "mcp_protocol_version": "2024-11-05",
+  "server_version": "7.3.0",
+  "tool_contract_version": "reliability-tools/v1",
+  "transport_matrix": {
+    "stdio": "PASS",
+    "streamable_http": "PASS"
+  },
+  "canonical_tool_count": 10,
+  "contract_compatibility": "PASS",
+  "provenance_preserved": true,
+  "redaction_preserved": true,
+  "audit_preserved": true,
+  "idempotency_preserved": true,
+  "abstention_preserved": true,
+  "scientific_regression": "PASS",
+  "frontend_build": "PASS",
+  "smoke_test_execution": {
+    "application_id": "app_inventory",
+    "status": "PASS",
+    "tools_verified": [
+      "inspect_application",
+      "get_application_health",
+      "get_prediction",
+      "get_uncertainty",
+      "list_failures",
+      "get_reliability_summary"
+    ],
+    "sample_prediction_probability": 0.2,
+    "sample_uncertainty_width": 0.1826,
+    "sample_provenance_snapshot": "eval_snap_slice_7_1"
+  },
+  "snapshot_sha256": "739e4da49d7044abf185c1beecbc156f284396a3e06f180aa87a500279643f6a"
+}

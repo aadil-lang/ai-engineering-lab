@@ -1,0 +1,62 @@
+[
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:8088/docs",
+    "method": "GET",
+    "resource_type": "document",
+    "timestamp": "2026-09-24T16:52:06.867279+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:8088/docs",
+    "status": 200,
+    "status_text": "OK",
+    "ok": true,
+    "timestamp": "2026-09-24T16:52:06.872306+00:00"
+  },
+  {
+    "event": "request",
+    "url": "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
+    "method": "GET",
+    "resource_type": "stylesheet",
+    "timestamp": "2026-09-24T16:52:06.878832+00:00"
+  },
+  {
+    "event": "request",
+    "url": "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
+    "method": "GET",
+    "resource_type": "script",
+    "timestamp": "2026-09-24T16:52:06.878832+00:00"
+  },
+  {
+    "event": "response",
+    "url": "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
+    "status": 200,
+    "status_text": "",
+    "ok": true,
+    "timestamp": "2026-09-24T16:52:07.600163+00:00"
+  },
+  {
+    "event": "response",
+    "url": "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
+    "status": 200,
+    "status_text": "",
+    "ok": true,
+    "timestamp": "2026-09-24T16:52:13.863797+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:8088/openapi.json",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-24T16:52:14.388080+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:8088/openapi.json",
+    "status": 200,
+    "status_text": "OK",
+    "ok": true,
+    "timestamp": "2026-09-24T16:52:14.403536+00:00"
+  }
+]
