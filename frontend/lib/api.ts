@@ -566,6 +566,39 @@ export const api = {
       `/prompt-lab/evaluations/compare/versions?prompt_id=${encodeURIComponent(promptId)}&v1=${v1}&v2=${v2}&suite_id=${encodeURIComponent(suiteId)}&suite_version=${suiteVersion}`
     );
   },
+
+  // Slice 7.7.1: Application Context
+  async getApplicationManifest(applicationId: string): Promise<import('@/types').AIApplicationManifestModel> {
+    return fetchJson<import('@/types').AIApplicationManifestModel>(`/prompt-lab/applications/${encodeURIComponent(applicationId)}/manifest`);
+  },
+
+  async createEvaluationContext(applicationId: string, payload: any): Promise<import('@/types').EvaluationContextModel> {
+    return fetchJson<import('@/types').EvaluationContextModel>(`/prompt-lab/applications/${encodeURIComponent(applicationId)}/context`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async getEvaluationContext(contextId: string): Promise<import('@/types').EvaluationContextModel> {
+    return fetchJson<import('@/types').EvaluationContextModel>(`/prompt-lab/contexts/${encodeURIComponent(contextId)}`);
+  },
+
+  async validateEvaluationContext(contextId: string, requireFrozen: boolean = false): Promise<any> {
+    return fetchJson<any>(`/prompt-lab/contexts/${encodeURIComponent(contextId)}/validate`, {
+      method: 'POST',
+      body: JSON.stringify({ require_frozen: requireFrozen }),
+    });
+  },
+
+  async getContextProvenance(contextId: string): Promise<import('@/types').ContextProvenanceModel[]> {
+    return fetchJson<import('@/types').ContextProvenanceModel[]>(`/prompt-lab/contexts/${encodeURIComponent(contextId)}/provenance`);
+  },
+
+  async compareEvaluationContexts(contextIdA: string, contextIdB: string): Promise<import('@/types').ContextDifferenceModel> {
+    return fetchJson<import('@/types').ContextDifferenceModel>(
+      `/prompt-lab/contexts/compare?context_a=${encodeURIComponent(contextIdA)}&context_b=${encodeURIComponent(contextIdB)}`
+    );
+  },
 };
 
 export const governanceApi = {
@@ -639,6 +672,11 @@ export const governanceApi = {
     });
   },
 
+  getAuthorizations: async (status?: string): Promise<ChangeAuthorizationModel[]> => {
+    const q = status ? `?status=${encodeURIComponent(status)}` : '';
+    return fetchJson<ChangeAuthorizationModel[]>(`/governance/authorizations${q}`);
+  },
+
   getAuthorization: async (id: string): Promise<ChangeAuthorizationModel> => {
     return fetchJson<ChangeAuthorizationModel>(`/governance/authorizations/${encodeURIComponent(id)}`);
   },
@@ -661,11 +699,290 @@ export const governanceApi = {
     return fetchJson<any>(`/governance/evidence/${encodeURIComponent(packageId)}`);
   },
 
+  canApply: async (
+    authorizationId: string,
+    dto: {
+      change_type: string;
+      subject_id: string;
+      target_version?: string;
+      target_commit_sha?: string;
+      current_evidence_package_id?: string;
+      requested_scope?: string;
+    }
+  ): Promise<any> => {
+    return fetchJson<any>(`/governance/authorizations/${encodeURIComponent(authorizationId)}/can-apply`, {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  },
+
+  consumeAuthorization: async (
+    authorizationId: string,
+    humanUser: string
+  ): Promise<ChangeAuthorizationModel> => {
+    return fetchJson<ChangeAuthorizationModel>(`/governance/authorizations/${encodeURIComponent(authorizationId)}/consume`, {
+      method: 'POST',
+      headers: {
+        'X-Human-User': humanUser,
+      },
+    });
+  },
+
   getAudit: async (subjectId?: string): Promise<GovernanceAuditRecordModel[]> => {
     const q = subjectId ? `?subject_id=${encodeURIComponent(subjectId)}` : '';
     return fetchJson<GovernanceAuditRecordModel[]>(`/governance/audit${q}`);
   },
 };
+
+// ============================================================================
+// Slice 8D — Live Autonomous Application Testing Console API
+// ============================================================================
+
+export const liveApi = {
+  getSessions: async (activeOnly: boolean = false): Promise<import('@/types').LiveDogfoodingSessionModel[]> => {
+    return fetchJson<import('@/types').LiveDogfoodingSessionModel[]>(`/live/sessions?active_only=${activeOnly}`);
+  },
+
+  getSession: async (sessionId: string): Promise<import('@/types').LiveDogfoodingSessionModel> => {
+    return fetchJson<import('@/types').LiveDogfoodingSessionModel>(`/live/sessions/${encodeURIComponent(sessionId)}`);
+  },
+
+  getSessionByRun: async (runId: string): Promise<import('@/types').LiveDogfoodingSessionModel> => {
+    return fetchJson<import('@/types').LiveDogfoodingSessionModel>(`/live/sessions/by-run/${encodeURIComponent(runId)}`);
+  },
+
+  getEventHistory: async (
+    sessionId: string,
+    fromSequence: number = 0
+  ): Promise<import('@/types').LiveEventModel[]> => {
+    return fetchJson<import('@/types').LiveEventModel[]>(
+      `/live/sessions/${encodeURIComponent(sessionId)}/events/history?from_sequence=${fromSequence}`
+    );
+  },
+
+  getScreenshotUrl: (sessionId: string): string => {
+    return `${API_BASE}/live/sessions/${encodeURIComponent(sessionId)}/screenshot`;
+  },
+
+  getEventSourceUrl: (sessionId: string, fromSequence: number = 0): string => {
+    return `${API_BASE}/live/sessions/${encodeURIComponent(sessionId)}/events?from_sequence=${fromSequence}`;
+  },
+
+  cancelSession: async (sessionId: string): Promise<import('@/types').LiveDogfoodingSessionModel> => {
+    return fetchJson<import('@/types').LiveDogfoodingSessionModel>(`/live/sessions/${encodeURIComponent(sessionId)}/cancel`, {
+      method: 'POST',
+    });
+  },
+
+  getSessionStrategy: async (sessionId: string): Promise<import('@/types').TestingStrategyModel> => {
+    return fetchJson<import('@/types').TestingStrategyModel>(`/live/sessions/${encodeURIComponent(sessionId)}/strategy`);
+  },
+
+  launchLiveRun: async (payload: import('@/types').TestRunCreate): Promise<import('@/types').LiveDogfoodingSessionModel> => {
+    return fetchJson<import('@/types').LiveDogfoodingSessionModel>('/live/launch', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+};
+
+export const memoryApi = {
+  listMemories: async (params?: {
+    application_id?: string;
+    workflow_id?: string;
+    status?: string;
+    memory_type?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<import('@/types').EngineeringMemoryModel[]> => {
+    const query = new URLSearchParams();
+    if (params?.application_id) query.append('application_id', params.application_id);
+    if (params?.workflow_id) query.append('workflow_id', params.workflow_id);
+    if (params?.status) query.append('status', params.status);
+    if (params?.memory_type) query.append('memory_type', params.memory_type);
+    if (params?.limit) query.append('limit', String(params.limit));
+    if (params?.offset) query.append('offset', String(params.offset));
+    const qs = query.toString();
+    return fetchJson<import('@/types').EngineeringMemoryModel[]>(`/memory${qs ? `?${qs}` : ''}`);
+  },
+
+  getMemory: async (memoryId: string): Promise<import('@/types').EngineeringMemoryModel> => {
+    return fetchJson<import('@/types').EngineeringMemoryModel>(`/memory/${encodeURIComponent(memoryId)}`);
+  },
+
+  searchMemories: async (payload: {
+    query: string;
+    application_id?: string;
+    top_k?: number;
+    current_prompt_version?: string;
+    current_git_commit?: string;
+    semantic_weight?: number;
+  }): Promise<import('@/types').MemorySearchResultModel[]> => {
+    return fetchJson<import('@/types').MemorySearchResultModel[]>('/memory/search', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getMemoryEvidence: async (memoryId: string): Promise<any> => {
+    return fetchJson<any>(`/memory/${encodeURIComponent(memoryId)}/evidence`);
+  },
+
+  getMemoryHistory: async (memoryId: string): Promise<any[]> => {
+    return fetchJson<any[]>(`/memory/${encodeURIComponent(memoryId)}/history`);
+  },
+
+  getMemoryRelationships: async (memoryId: string): Promise<any[]> => {
+    return fetchJson<any[]>(`/memory/${encodeURIComponent(memoryId)}/relationships`);
+  },
+
+  invalidateMemory: async (memoryId: string, reason: string): Promise<import('@/types').EngineeringMemoryModel> => {
+    return fetchJson<import('@/types').EngineeringMemoryModel>(`/memory/${encodeURIComponent(memoryId)}/invalidate`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
+};
+
+export const changeImpactApi = {
+  analyzeChange: async (payload: {
+    repository?: string;
+    base_commit: string;
+    candidate_commit: string;
+    changed_files?: string[];
+    changed_prompts?: string[];
+    changed_models?: string[];
+    changed_retrieval?: string[];
+    changed_tools?: string[];
+    changed_configuration?: Record<string, any>;
+    application_id?: string;
+  }): Promise<import('@/types').ChangeImpactModel> => {
+    return fetchJson<import('@/types').ChangeImpactModel>('/change-impact/analyze', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getChangeSet: async (changeSetId: string): Promise<import('@/types').ChangeSetModel> => {
+    return fetchJson<import('@/types').ChangeSetModel>(`/change-impact/${encodeURIComponent(changeSetId)}`);
+  },
+
+  getImpactGraph: async (changeSetId: string): Promise<import('@/types').ChangeImpactModel> => {
+    return fetchJson<import('@/types').ChangeImpactModel>(`/change-impact/${encodeURIComponent(changeSetId)}/graph`);
+  },
+
+  createPlan: async (payload: {
+    change_set_id: string;
+    target_id: string;
+    application_id?: string;
+    budget?: Record<string, any>;
+  }): Promise<import('@/types').AdaptiveRegressionPlanModel> => {
+    return fetchJson<import('@/types').AdaptiveRegressionPlanModel>('/regression/plans', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getPlan: async (planId: string): Promise<import('@/types').AdaptiveRegressionPlanModel> => {
+    return fetchJson<import('@/types').AdaptiveRegressionPlanModel>(`/regression/plans/${encodeURIComponent(planId)}`);
+  },
+
+  executePlan: async (planId: string, candidateCommit?: string): Promise<any> => {
+    return fetchJson<any>(`/regression/plans/${encodeURIComponent(planId)}/execute`, {
+      method: 'POST',
+      body: JSON.stringify({ candidate_commit: candidateCommit }),
+    });
+  },
+
+  getFindings: async (planId: string): Promise<import('@/types').RegressionFindingModel[]> => {
+    return fetchJson<import('@/types').RegressionFindingModel[]>(`/regression/plans/${encodeURIComponent(planId)}/findings`);
+  },
+
+  getComparison: async (planId: string): Promise<import('@/types').BehavioralComparisonModel> => {
+    return fetchJson<import('@/types').BehavioralComparisonModel>(`/regression/plans/${encodeURIComponent(planId)}/comparison`);
+  },
+
+  compareRuns: async (planId: string, payload: {
+    baseline_run_id: string;
+    candidate_run_id: string;
+    baseline_results?: Record<string, any>;
+    candidate_results?: Record<string, any>;
+    contract_evaluations?: Record<string, boolean>;
+    evidence_ids?: string[];
+  }): Promise<import('@/types').BehavioralComparisonModel> => {
+    return fetchJson<import('@/types').BehavioralComparisonModel>(`/regression/plans/${encodeURIComponent(planId)}/compare`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+};
+
+export const provenanceApi = {
+  recordEvent: async (payload: {
+    correlation_id: string;
+    event_type: string;
+    actor_type?: string;
+    actor_id?: string;
+    application_id?: string;
+    target_id?: string;
+    run_id?: string;
+    test_case_id?: string;
+    change_set_id?: string;
+    plan_id?: string;
+    memory_id?: string;
+    evidence_id?: string;
+    diagnosis_id?: string;
+    remediation_id?: string;
+    governance_id?: string;
+    authorization_id?: string;
+    git_commit?: string;
+    pull_request_id?: string;
+    ci_run_id?: string;
+    context_id?: string;
+    parent_event_id?: string;
+    metadata?: Record<string, any>;
+  }): Promise<import('@/types').EngineeringLifecycleEventModel> => {
+    return fetchJson<import('@/types').EngineeringLifecycleEventModel>('/provenance/events', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getEvent: async (eventId: string): Promise<import('@/types').EngineeringLifecycleEventModel> => {
+    return fetchJson<import('@/types').EngineeringLifecycleEventModel>(`/provenance/events/${encodeURIComponent(eventId)}`);
+  },
+
+  listEvents: async (params?: {
+    correlation_id?: string;
+    application_id?: string;
+    run_id?: string;
+    git_commit?: string;
+    limit?: number;
+  }): Promise<import('@/types').EngineeringLifecycleEventModel[]> => {
+    const query = new URLSearchParams();
+    if (params?.correlation_id) query.append('correlation_id', params.correlation_id);
+    if (params?.application_id) query.append('application_id', params.application_id);
+    if (params?.run_id) query.append('run_id', params.run_id);
+    if (params?.git_commit) query.append('git_commit', params.git_commit);
+    if (params?.limit) query.append('limit', String(params.limit));
+    const qs = query.toString();
+    return fetchJson<import('@/types').EngineeringLifecycleEventModel[]>(`/provenance/events${qs ? `?${qs}` : ''}`);
+  },
+
+  getTrace: async (correlationId: string): Promise<import('@/types').ProvenanceTraceModel> => {
+    return fetchJson<import('@/types').ProvenanceTraceModel>(`/provenance/trace?correlation_id=${encodeURIComponent(correlationId)}`);
+  },
+
+  verifyChain: async (correlationId?: string): Promise<import('@/types').ProvenanceChainVerificationResultModel> => {
+    return fetchJson<import('@/types').ProvenanceChainVerificationResultModel>('/provenance/verify', {
+      method: 'POST',
+      body: JSON.stringify({ correlation_id: correlationId }),
+    });
+  },
+};
+
+
+
 
 
 

@@ -56,6 +56,31 @@ from backend.app.prompt_lab.errors import (
     CandidateNotFoundError,
 )
 
+from backend.app.prompt_lab.application_context_models import (
+    EpistemicStatus,
+    EvaluationMode,
+    ContractEvaluationStatus,
+    AIApplicationManifest,
+    EvaluationContext,
+    ContextProvenance,
+    ContextBinding,
+    ContextDifference,
+    EvaluationContextSnapshot,
+    ContextAwarePromptCandidate,
+)
+from backend.app.prompt_lab.application_context_service import ApplicationContextService
+from backend.app.prompt_lab.application_context_errors import (
+    ApplicationContextNotFoundError,
+    PromptBindingMismatchError,
+    PromptVersionMismatchError,
+    GitContextMismatchError,
+    ModelContextMissingError,
+    EvaluationSuiteContextMismatchError,
+    ContextNotFrozenError,
+    ContextIntegrityError,
+    DeclaredPromptRuntimeMismatchError,
+)
+
 __all__ = [
     "PromptDefinition",
     "PromptVersion",
@@ -106,4 +131,25 @@ __all__ = [
     "InvalidPromptTemplateError",
     "EvaluationSnapshotTamperedError",
     "CandidateNotFoundError",
+    "EpistemicStatus",
+    "EvaluationMode",
+    "ContractEvaluationStatus",
+    "AIApplicationManifest",
+    "EvaluationContext",
+    "ContextProvenance",
+    "ContextBinding",
+    "ContextDifference",
+    "EvaluationContextSnapshot",
+    "ContextAwarePromptCandidate",
+    "ApplicationContextService",
+    "ApplicationContextNotFoundError",
+    "PromptBindingMismatchError",
+    "PromptVersionMismatchError",
+    "GitContextMismatchError",
+    "ModelContextMissingError",
+    "EvaluationSuiteContextMismatchError",
+    "ContextNotFrozenError",
+    "ContextIntegrityError",
+    "DeclaredPromptRuntimeMismatchError",
 ]
+

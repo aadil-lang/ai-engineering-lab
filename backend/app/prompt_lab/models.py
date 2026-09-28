@@ -278,6 +278,13 @@ class EvaluationRun(BaseModel):
     started_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     completed_at: Optional[str] = None
     duration_ms: int = 0
+    context_id: Optional[str] = None
+    context_hash: Optional[str] = None
+    application_id: Optional[str] = None
+    feature_id: Optional[str] = None
+    git_commit_sha: Optional[str] = None
+    snapshot_id: Optional[str] = None
+    contract_evaluations: Dict[str, str] = Field(default_factory=dict)
 
 
 # 7. Comparison & Regressions
@@ -313,6 +320,10 @@ class PromptComparisonResult(BaseModel):
     deterministic_pass_rates: Dict[str, float] = Field(default_factory=dict)
     grounding_pass_rates: Dict[str, float] = Field(default_factory=dict)
     semantic_pass_rates: Dict[str, float] = Field(default_factory=dict)
+    context_difference: Optional[Dict[str, Any]] = None
+    contract_evaluations_v1: Dict[str, str] = Field(default_factory=dict)
+    contract_evaluations_v2: Dict[str, str] = Field(default_factory=dict)
+    contract_regressions: List[str] = Field(default_factory=list)
 
 
 # 8. Immutable Evaluation Snapshot

@@ -23,10 +23,16 @@ Antigravity is the development, reasoning, and build environment; the Engineerin
 Do **NOT** use the Engineering Lab for every minor keystroke or syntax edit. Activate and use the Lab under the following specific conditions:
 
 1. **After Implementing Significant Features**: When functional behavior or application contracts change.
-2. **Before Considering a Feature Complete**: To satisfy the independent verification requirement of the Definition of Done.
+2. **Before Considering a Feature Complete**: To satisfy the independent verification requirement of the Definition of "Done" (`IMPLEMENTED` + `LAB_VERIFIED` = `COMPLETE`).
 3. **When a Regression is Suspected**: To query recent failure logs, inspect execution traces, and verify whether recent runs broke existing flows.
 4. **When Application Reliability is Uncertain**: To consult prior reliability models, check predictive failure probability, and inspect posterior uncertainty bounds before making operational claims.
 5. **When Debugging an Existing Failure**: To retrieve deep failure telemetry, examine verified evidence artifacts (DOM, screenshots, network logs), and obtain epistemic root cause diagnoses.
+
+### Definition of "Done"
+An engineering task transitions through distinct verification gates before closure:
+- `IMPLEMENTED`: Code edits completed and all local unit tests pass.
+- `LAB_VERIFIED`: Independent Engineering Lab session executed with structured evidence collected.
+- `COMPLETE`: Both implementation and independent verification gates are satisfied.
 
 ### When NOT to Use the Lab
 * Trivial edits (documentation typos, comment updates, formatting).

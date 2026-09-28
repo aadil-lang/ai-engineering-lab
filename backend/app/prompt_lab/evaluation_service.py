@@ -21,6 +21,13 @@ from backend.app.prompt_lab.models import (
     CaseTransition,
     EvaluationSnapshot,
 )
+from backend.app.prompt_lab.application_context_models import (
+    EvaluationMode,
+    ContractEvaluationStatus,
+    EvaluationContext,
+)
+from backend.app.prompt_lab.application_context_service import ApplicationContextService
+from backend.app.prompt_lab.application_context_errors import ApplicationContextNotFoundError
 from backend.app.prompt_lab.repository import PromptLabRepository
 from backend.app.prompt_lab.prompt_service import PromptService, redact_secrets
 from backend.app.prompt_lab.evaluator_service import CompositeEvaluator
@@ -44,10 +51,12 @@ class EvaluationService:
         repo: Optional[PromptLabRepository] = None,
         prompt_service: Optional[PromptService] = None,
         diagnosis_service: Optional[PromptDiagnosisService] = None,
+        context_service: Optional[ApplicationContextService] = None,
     ):
         self.repo = repo or PromptLabRepository()
         self.prompt_service = prompt_service or PromptService(self.repo)
         self.diagnosis_service = diagnosis_service or PromptDiagnosisService()
+        self.context_service = context_service or ApplicationContextService(self.repo)
         self.evaluator = CompositeEvaluator()
 
     # 1. Suite Management
@@ -107,7 +116,27 @@ class EvaluationService:
         model_runner: Optional[Callable[[str, EvaluationCase], str]] = None,
         application_version: Optional[str] = None,
         git_commit_sha: Optional[str] = None,
+        context_id: Optional[str] = None,
+        evaluation_mode: EvaluationMode = EvaluationMode.PROMPT_LEVEL,
     ) -> EvaluationRun:
+        context: Optional[EvaluationContext] = None
+        if evaluation_mode == EvaluationMode.APPLICATION_LEVEL:
+            if not context_id:
+                raise ApplicationContextNotFoundError("context_id is required for APPLICATION_LEVEL evaluation mode.")
+            context = self.context_service.get_evaluation_context(context_id)
+            if not context.is_frozen:
+                context = self.context_service.freeze_evaluation_context(context_id)
+            self.context_service.validate_evaluation_context(context, require_frozen=True)
+
+            # Inherit and enforce authoritative context attributes
+            prompt_id = context.prompt_id
+            prompt_version = context.prompt_version
+            model = context.model
+            git_commit_sha = context.git_commit_sha or git_commit_sha
+            application_version = context.application_version or application_version
+            if context.generation_parameters and not generation_parameters:
+                generation_parameters = context.generation_parameters
+
         pv = self.prompt_service.get_prompt_version(prompt_id, prompt_version)
         sv = self.get_suite_version(suite_id, suite_version)
 
@@ -154,7 +183,7 @@ class EvaluationService:
                 prompt_id=prompt_id,
                 prompt_version=prompt_version,
                 model=model,
-                model_version="1.0",
+                model_version=context.model_version if context else "1.0",
                 generation_parameters=gen_params,
                 input_hash=input_hash,
                 rendered_prompt_hash=rendered_hash,
@@ -195,6 +224,7 @@ class EvaluationService:
                     case=case,
                     evaluator_results=ev_results,
                     execution=exec_record,
+                    context=context if evaluation_mode == EvaluationMode.APPLICATION_LEVEL else None,
                 )
                 self.repo.save_diagnosis(diag)
                 diagnoses.append(diag)
@@ -218,6 +248,26 @@ class EvaluationService:
         pass_rate = round(passed_count / total_cases, 4) if total_cases > 0 else 0.0
         duration_total = int((time.time() - t0) * 1000)
 
+        # 5. Evaluate behavioral contracts if present in application context
+        contract_evaluations: Dict[str, ContractEvaluationStatus] = {}
+        if evaluation_mode == EvaluationMode.APPLICATION_LEVEL and context and context.behavioral_contract_ids:
+            for cid in context.behavioral_contract_ids:
+                matching_cases = [
+                    r for r in case_results
+                    if cid in r.case_id or any(cid in str(t) for t in (r.category, r.severity))
+                ]
+                if not matching_cases:
+                    matching_cases = [r for r in case_results if r.severity in {SeverityLevel.CRITICAL, SeverityLevel.HIGH}]
+                if matching_cases:
+                    if any(r.overall_status in {EvaluationStatus.FAIL, EvaluationStatus.PARTIAL} for r in matching_cases):
+                        contract_evaluations[cid] = ContractEvaluationStatus.CONTRACT_VIOLATED
+                    elif any(r.overall_status in {EvaluationStatus.UNKNOWN, EvaluationStatus.ABSTAINED} for r in matching_cases):
+                        contract_evaluations[cid] = ContractEvaluationStatus.CONTRACT_UNCERTAIN
+                    else:
+                        contract_evaluations[cid] = ContractEvaluationStatus.CONTRACT_PRESERVED
+                else:
+                    contract_evaluations[cid] = ContractEvaluationStatus.CONTRACT_PRESERVED if pass_rate >= 0.8 else ContractEvaluationStatus.CONTRACT_UNCERTAIN
+
         run = EvaluationRun(
             evaluation_run_id=run_id,
             prompt_id=prompt_id,
@@ -239,11 +289,27 @@ class EvaluationService:
             started_at=started_at,
             completed_at=datetime.now(timezone.utc).isoformat(),
             duration_ms=duration_total,
+            context_id=context.context_id if context else None,
+            context_hash=context.context_hash if context else None,
+            application_id=context.application_id if context else None,
+            feature_id=context.feature_id if context else None,
+            git_commit_sha=git_commit_sha,
+            contract_evaluations={k: v.value for k, v in contract_evaluations.items()},
         )
         self.repo.save_run(run)
 
-        # 5. Create immutable Evaluation Snapshot
-        self.create_evaluation_snapshot(run)
+        # 6. Create immutable Evaluation Snapshot
+        if evaluation_mode == EvaluationMode.APPLICATION_LEVEL and context:
+            ctx_snap = self.context_service.create_context_snapshot(
+                run=run,
+                context=context,
+                suite_version=suite_version,
+                contract_evaluations=contract_evaluations,
+            )
+            run.snapshot_id = ctx_snap.snapshot_id
+            self.repo.save_run(run)
+        else:
+            self.create_evaluation_snapshot(run)
 
         return run
 
@@ -396,6 +462,21 @@ class EvaluationService:
         sem_v1 = sum(1 for r in run_v1.case_results if any(e.strategy == EvaluationStrategy.SEMANTIC_JUDGE and e.status == EvaluationStatus.PASS for e in r.evaluator_results)) / (run_v1.total_cases or 1)
         sem_v2 = sum(1 for r in run_v2.case_results if any(e.strategy == EvaluationStrategy.SEMANTIC_JUDGE and e.status == EvaluationStatus.PASS for e in r.evaluator_results)) / (run_v2.total_cases or 1)
 
+        # Context difference analysis if contexts are attached
+        context_diff_dict = None
+        if run_v1.context_id and run_v2.context_id:
+            diff_obj = self.context_service.compare_evaluation_contexts(run_v1.context_id, run_v2.context_id)
+            context_diff_dict = diff_obj.model_dump()
+
+        # Behavioral contract regressions
+        contracts_v1 = run_v1.contract_evaluations or {}
+        contracts_v2 = run_v2.contract_evaluations or {}
+        contract_regressions: List[str] = []
+        for cid, status_v1 in contracts_v1.items():
+            status_v2 = contracts_v2.get(cid)
+            if status_v1 == ContractEvaluationStatus.CONTRACT_PRESERVED.value and status_v2 == ContractEvaluationStatus.CONTRACT_VIOLATED.value:
+                contract_regressions.append(cid)
+
         return PromptComparisonResult(
             prompt_id=prompt_id,
             v1_version=v1_version,
@@ -418,6 +499,10 @@ class EvaluationService:
             deterministic_pass_rates={"v1": round(det_v1, 4), "v2": round(det_v2, 4)},
             grounding_pass_rates={"v1": round(ground_v1, 4), "v2": round(ground_v2, 4)},
             semantic_pass_rates={"v1": round(sem_v1, 4), "v2": round(sem_v2, 4)},
+            context_difference=context_diff_dict,
+            contract_evaluations_v1=contracts_v1,
+            contract_evaluations_v2=contracts_v2,
+            contract_regressions=contract_regressions,
         )
 
     # Helper: default mock runner

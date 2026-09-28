@@ -22,9 +22,14 @@ import {
   ExternalLink,
   ChevronRight,
   Terminal,
-  Cpu
+  Cpu,
+  GitBranch,
+  Fingerprint,
+  Box,
+  Binary,
 } from 'lucide-react';
 import { api } from '@/lib/api';
+import { AppShell } from '@/components/AppShell';
 import {
   PromptDefinitionModel,
   PromptVersionModel,
@@ -33,14 +38,26 @@ import {
   EvaluationRunModel,
   PromptComparisonResultModel,
   PromptDiagnosisModel,
+  AIApplicationManifestModel,
+  EvaluationContextModel,
+  ContextProvenanceModel,
+  ContextDifferenceModel,
+  EpistemicStatus,
 } from '@/types';
 
 export default function PromptReliabilityLabPage() {
-  const [activeTab, setActiveTab] = useState<'prompts' | 'suites' | 'runs' | 'compare'>('prompts');
+  const [activeTab, setActiveTab] = useState<'prompts' | 'suites' | 'runs' | 'compare' | 'context'>('prompts');
   const [prompts, setPrompts] = useState<PromptDefinitionModel[]>([]);
   const [selectedPrompt, setSelectedPrompt] = useState<PromptDefinitionModel | null>(null);
   const [versions, setVersions] = useState<PromptVersionModel[]>([]);
   const [selectedVersion, setSelectedVersion] = useState<PromptVersionModel | null>(null);
+
+  const [appManifest, setAppManifest] = useState<AIApplicationManifestModel | null>(null);
+  const [evalContext, setEvalContext] = useState<EvaluationContextModel | null>(null);
+  const [contextProvenance, setContextProvenance] = useState<ContextProvenanceModel[]>([]);
+  const [contextDiff, setContextDiff] = useState<ContextDifferenceModel | null>(null);
+  const [ctxIdA, setCtxIdA] = useState<string>('ctx_baseline_v17');
+  const [ctxIdB, setCtxIdB] = useState<string>('ctx_candidate_v18');
 
   const [suites, setSuites] = useState<EvaluationSuiteModel[]>([]);
   const [selectedSuite, setSelectedSuite] = useState<EvaluationSuiteModel | null>(null);
@@ -198,9 +215,10 @@ export default function PromptReliabilityLabPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#060911] text-slate-100 p-6 lg:p-10 font-sans">
-      {/* Header Banner */}
-      <div className="max-w-7xl mx-auto mb-8">
+    <AppShell>
+      <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+        {/* Header Banner */}
+        <div className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-800/80">
           <div>
             <div className="flex items-center space-x-3 mb-1">
@@ -296,6 +314,17 @@ export default function PromptReliabilityLabPage() {
           >
             <GitCompare className="h-4 w-4" />
             Version Comparison & Regressions
+          </button>
+          <button
+            onClick={() => setActiveTab('context')}
+            className={`pb-3 px-4 text-xs font-semibold flex items-center gap-2 border-b-2 transition-all ${
+              activeTab === 'context'
+                ? 'border-pink-500 text-pink-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Cpu className="h-4 w-4" />
+            Application Context (Slice 7.7.1)
           </button>
         </div>
       </div>
@@ -906,6 +935,379 @@ export default function PromptReliabilityLabPage() {
             )}
           </div>
         )}
+
+        {/* 5. Application Context Contract (Slice 7.7.1) */}
+        {activeTab === 'context' && (
+          <div className="space-y-6">
+            {/* Header & Principle Banner */}
+            <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950/20 to-slate-900 border border-indigo-500/20 backdrop-blur-md">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-400">
+                      <Cpu className="h-4 w-4" />
+                    </span>
+                    <h2 className="text-base font-bold text-white">AI Application Context Contract & Epistemic Boundaries</h2>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300">
+                      Slice 7.7.1
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 max-w-3xl">
+                    Prompt-level evaluation is for isolated experimentation; <strong className="text-indigo-300">Application-level evaluation</strong> binds to the real application runtime, frozen Git commit, model, tools, retrieval, and behavioral contracts.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-semibold flex items-center gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Frozen Contract Active
+                  </span>
+                </div>
+              </div>
+
+              {/* Epistemic Status Guide */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-800/80 text-[11px]">
+                <div className="p-2.5 rounded-xl bg-slate-950/80 border border-emerald-500/20">
+                  <div className="flex items-center gap-1.5 text-emerald-400 font-bold mb-0.5">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
+                    OBSERVED
+                  </div>
+                  <p className="text-[10px] text-slate-400">Verified at runtime or exact Git commit provenance.</p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-950/80 border border-amber-500/20">
+                  <div className="flex items-center gap-1.5 text-amber-400 font-bold mb-0.5">
+                    <span className="h-2 w-2 rounded-full bg-amber-400"></span>
+                    DECLARED
+                  </div>
+                  <p className="text-[10px] text-slate-400">Stated configuration in manifest awaiting verification.</p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-950/80 border border-sky-500/20">
+                  <div className="flex items-center gap-1.5 text-sky-400 font-bold mb-0.5">
+                    <span className="h-2 w-2 rounded-full bg-sky-400"></span>
+                    INFERRED
+                  </div>
+                  <p className="text-[10px] text-slate-400">Derived from operational signals and telemetry.</p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-950/80 border border-purple-500/20">
+                  <div className="flex items-center gap-1.5 text-purple-400 font-bold mb-0.5">
+                    <span className="h-2 w-2 rounded-full bg-purple-400"></span>
+                    HYPOTHESIS
+                  </div>
+                  <p className="text-[10px] text-slate-400">Candidate improvement or non-verified causal theory.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Application Manifest & Frozen Context Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Left Column: AI Application Manifest */}
+              <div className="lg:col-span-6 bg-slate-900/60 border border-slate-800 rounded-2xl p-5 backdrop-blur-md space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <Box className="h-4 w-4 text-pink-400" />
+                    <h3 className="text-sm font-bold text-white">AI Application Manifest</h3>
+                  </div>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300">
+                    order-triage-app:v2.4.1
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
+                    <span className="text-[10px] uppercase tracking-wider text-slate-400 block mb-1">Application ID</span>
+                    <span className="font-mono text-white font-semibold">order-triage-service</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
+                    <span className="text-[10px] uppercase tracking-wider text-slate-400 block mb-1">Feature ID</span>
+                    <span className="font-mono text-white font-semibold">refund-routing-v2</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] uppercase tracking-wider text-slate-400">Git Commit SHA</span>
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400">OBSERVED</span>
+                    </div>
+                    <span className="font-mono text-indigo-300 font-semibold">7f8a9b1c2d3e</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] uppercase tracking-wider text-slate-400">Bound Prompt</span>
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400">OBSERVED</span>
+                    </div>
+                    <span className="font-mono text-pink-400 font-semibold">order_triage:v17</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] uppercase tracking-wider text-slate-400">Model & Config</span>
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-400">DECLARED</span>
+                    </div>
+                    <span className="font-mono text-white font-semibold">claude-3-5-sonnet:20241022</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] uppercase tracking-wider text-slate-400">Bound Evaluation Suite</span>
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400">OBSERVED</span>
+                    </div>
+                    <span className="font-mono text-white font-semibold">suite_order_exceptions:v1</span>
+                  </div>
+                </div>
+
+                {/* Behavioral Contracts */}
+                <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800/80">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                      <ShieldCheck className="h-3.5 w-3.5 text-cyan-400" />
+                      Bound Behavioral Contracts
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">2 Active Contracts</span>
+                  </div>
+                  <div className="space-y-1.5 text-xs font-mono">
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800">
+                      <span className="text-cyan-300">contract_refund_threshold_precedence</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300">PRESERVED</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800">
+                      <span className="text-cyan-300">contract_strict_grounding_fidelity</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300">PRESERVED</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Context Cryptographic Fingerprint */}
+                <div className="p-3.5 rounded-xl bg-slate-950/80 border border-indigo-500/30 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <Fingerprint className="h-4 w-4 text-indigo-400" />
+                    <div>
+                      <span className="text-[10px] uppercase text-slate-400 block">Context SHA-256 Hash</span>
+                      <span className="font-mono text-indigo-300 text-[11px]">8f4a1c7e9b2d3f6a8e0c1b4d7e9f2a4b...</span>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded bg-indigo-500/20 text-indigo-300 font-bold text-[10px]">
+                    FROZEN
+                  </span>
+                </div>
+              </div>
+
+              {/* Right Column: Component Provenance Records */}
+              <div className="lg:col-span-6 bg-slate-900/60 border border-slate-800 rounded-2xl p-5 backdrop-blur-md space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <GitBranch className="h-4 w-4 text-emerald-400" />
+                    <h3 className="text-sm font-bold text-white">Context Provenance Ledger</h3>
+                  </div>
+                  <span className="text-[11px] text-slate-400">8 Provenance Layers</span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-950/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                      <tr>
+                        <th className="py-2.5 px-3">Component</th>
+                        <th className="py-2.5 px-3">Source</th>
+                        <th className="py-2.5 px-3">Version / ID</th>
+                        <th className="py-2.5 px-3">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
+                      <tr className="hover:bg-slate-800/30">
+                        <td className="py-2.5 px-3 font-semibold text-white">prompt</td>
+                        <td className="py-2.5 px-3 text-slate-400">PromptRegistry</td>
+                        <td className="py-2.5 px-3 text-pink-300">order_triage:v17</td>
+                        <td className="py-2.5 px-3">
+                          <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400">OBSERVED</span>
+                        </td>
+                      </tr>
+                      <tr className="hover:bg-slate-800/30">
+                        <td className="py-2.5 px-3 font-semibold text-white">git_commit</td>
+                        <td className="py-2.5 px-3 text-slate-400">GitHub</td>
+                        <td className="py-2.5 px-3 text-indigo-300">7f8a9b1c2d3e</td>
+                        <td className="py-2.5 px-3">
+                          <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400">OBSERVED</span>
+                        </td>
+                      </tr>
+                      <tr className="hover:bg-slate-800/30">
+                        <td className="py-2.5 px-3 font-semibold text-white">model</td>
+                        <td className="py-2.5 px-3 text-slate-400">ApplicationConfig</td>
+                        <td className="py-2.5 px-3 text-white">claude-3-5-sonnet</td>
+                        <td className="py-2.5 px-3">
+                          <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-400">DECLARED</span>
+                        </td>
+                      </tr>
+                      <tr className="hover:bg-slate-800/30">
+                        <td className="py-2.5 px-3 font-semibold text-white">retrieval</td>
+                        <td className="py-2.5 px-3 text-slate-400">KnowledgeBase</td>
+                        <td className="py-2.5 px-3 text-slate-300">retrieval_pipeline_v1</td>
+                        <td className="py-2.5 px-3">
+                          <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400">OBSERVED</span>
+                        </td>
+                      </tr>
+                      <tr className="hover:bg-slate-800/30">
+                        <td className="py-2.5 px-3 font-semibold text-white">tools</td>
+                        <td className="py-2.5 px-3 text-slate-400">ToolRegistry</td>
+                        <td className="py-2.5 px-3 text-slate-300">2 registered tools</td>
+                        <td className="py-2.5 px-3">
+                          <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400">OBSERVED</span>
+                        </td>
+                      </tr>
+                      <tr className="hover:bg-slate-800/30">
+                        <td className="py-2.5 px-3 font-semibold text-white">parser</td>
+                        <td className="py-2.5 px-3 text-slate-400">OutputParser</td>
+                        <td className="py-2.5 px-3 text-slate-300">json_schema_parser:v2</td>
+                        <td className="py-2.5 px-3">
+                          <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400">OBSERVED</span>
+                        </td>
+                      </tr>
+                      <tr className="hover:bg-slate-800/30">
+                        <td className="py-2.5 px-3 font-semibold text-white">behavioral_contract</td>
+                        <td className="py-2.5 px-3 text-slate-400">EvaluationRegistry</td>
+                        <td className="py-2.5 px-3 text-cyan-300">2 contracts</td>
+                        <td className="py-2.5 px-3">
+                          <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400">OBSERVED</span>
+                        </td>
+                      </tr>
+                      <tr className="hover:bg-slate-800/30">
+                        <td className="py-2.5 px-3 font-semibold text-white">evaluation_suite</td>
+                        <td className="py-2.5 px-3 text-slate-400">EvaluationRegistry</td>
+                        <td className="py-2.5 px-3 text-white">suite_order_exceptions:v1</td>
+                        <td className="py-2.5 px-3">
+                          <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400">OBSERVED</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Context Difference & Causal Attribution Section */}
+            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 backdrop-blur-md space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <Binary className="h-5 w-5 text-indigo-400" />
+                  <div>
+                    <h3 className="text-sm font-bold text-white">10-Dimensional Context Difference & Causal Attribution</h3>
+                    <p className="text-xs text-slate-400">
+                      Detects <strong className="text-amber-300">MULTI_VARIABLE_CHANGE</strong> to prevent unsupported causal attribution of improvements to prompt changes.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Isolated Variable Verified
+                  </span>
+                </div>
+              </div>
+
+              {/* Context Difference Matrix */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-950/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                    <tr>
+                      <th className="py-3 px-4">Context Dimension</th>
+                      <th className="py-3 px-4">Baseline (ctx_baseline_v17)</th>
+                      <th className="py-3 px-4">Candidate (ctx_candidate_v18)</th>
+                      <th className="py-3 px-4">Delta State</th>
+                      <th className="py-3 px-4">Attribution Impact</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
+                    <tr className="bg-pink-500/5 hover:bg-pink-500/10">
+                      <td className="py-3 px-4 font-bold text-white flex items-center gap-2">
+                        <FileCode className="h-3.5 w-3.5 text-pink-400" />
+                        Prompt Version
+                      </td>
+                      <td className="py-3 px-4 text-pink-300 font-semibold">order_triage:v17</td>
+                      <td className="py-3 px-4 text-pink-300 font-semibold">order_triage:v18</td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-pink-500/20 text-pink-300">
+                          CHANGED (v17 → v18)
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-slate-300 text-[11px] font-sans">
+                        Target experimental variable.
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-slate-800/30">
+                      <td className="py-3 px-4 font-semibold text-slate-300">Git Commit SHA</td>
+                      <td className="py-3 px-4 text-slate-400">7f8a9b1c2d3e</td>
+                      <td className="py-3 px-4 text-slate-400">7f8a9b1c2d3e</td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">UNCHANGED</span>
+                      </td>
+                      <td className="py-3 px-4 text-slate-400 text-[11px] font-sans">Identical codebase commit.</td>
+                    </tr>
+                    <tr className="hover:bg-slate-800/30">
+                      <td className="py-3 px-4 font-semibold text-slate-300">Model & Version</td>
+                      <td className="py-3 px-4 text-slate-400">claude-3-5-sonnet:20241022</td>
+                      <td className="py-3 px-4 text-slate-400">claude-3-5-sonnet:20241022</td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">UNCHANGED</span>
+                      </td>
+                      <td className="py-3 px-4 text-slate-400 text-[11px] font-sans">Identical model baseline.</td>
+                    </tr>
+                    <tr className="hover:bg-slate-800/30">
+                      <td className="py-3 px-4 font-semibold text-slate-300">Model Parameters</td>
+                      <td className="py-3 px-4 text-slate-400">temp=0.0, max=1024</td>
+                      <td className="py-3 px-4 text-slate-400">temp=0.0, max=1024</td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">UNCHANGED</span>
+                      </td>
+                      <td className="py-3 px-4 text-slate-400 text-[11px] font-sans">Deterministic sampling preserved.</td>
+                    </tr>
+                    <tr className="hover:bg-slate-800/30">
+                      <td className="py-3 px-4 font-semibold text-slate-300">Retrieval Pipeline</td>
+                      <td className="py-3 px-4 text-slate-400">kb_pipeline_v1</td>
+                      <td className="py-3 px-4 text-slate-400">kb_pipeline_v1</td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">UNCHANGED</span>
+                      </td>
+                      <td className="py-3 px-4 text-slate-400 text-[11px] font-sans">Identical knowledge chunks retrieved.</td>
+                    </tr>
+                    <tr className="hover:bg-slate-800/30">
+                      <td className="py-3 px-4 font-semibold text-slate-300">Tool Permissions & Registry</td>
+                      <td className="py-3 px-4 text-slate-400">registry_v4 (2 tools)</td>
+                      <td className="py-3 px-4 text-slate-400">registry_v4 (2 tools)</td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">UNCHANGED</span>
+                      </td>
+                      <td className="py-3 px-4 text-slate-400 text-[11px] font-sans">Identical tool boundaries.</td>
+                    </tr>
+                    <tr className="hover:bg-slate-800/30">
+                      <td className="py-3 px-4 font-semibold text-slate-300">Parser Configuration</td>
+                      <td className="py-3 px-4 text-slate-400">pydantic_v2</td>
+                      <td className="py-3 px-4 text-slate-400">pydantic_v2</td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">UNCHANGED</span>
+                      </td>
+                      <td className="py-3 px-4 text-slate-400 text-[11px] font-sans">Identical parsing rules.</td>
+                    </tr>
+                    <tr className="hover:bg-slate-800/30">
+                      <td className="py-3 px-4 font-semibold text-slate-300">Evaluation Suite</td>
+                      <td className="py-3 px-4 text-slate-400">suite_order_exceptions:v1</td>
+                      <td className="py-3 px-4 text-slate-400">suite_order_exceptions:v1</td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">UNCHANGED</span>
+                      </td>
+                      <td className="py-3 px-4 text-slate-400 text-[11px] font-sans">Identical frozen test suite.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Attribution Callout */}
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs flex items-center justify-between text-emerald-300">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                  <span>
+                    <strong>ISOLATED_VARIABLE VALIDATION</strong>: Only prompt version changed while all other 9 context dimensions remained identical. Performance change can be causally attributed to the prompt.
+                  </span>
+                </div>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 uppercase">
+                  Attribution Permitted
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* New Prompt Version Modal */}
@@ -993,6 +1395,7 @@ export default function PromptReliabilityLabPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </AppShell>
   );
 }

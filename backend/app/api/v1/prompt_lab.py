@@ -16,10 +16,31 @@ from backend.app.prompt_lab.models import (
     EvaluationSnapshot,
     StructuredPromptComponents,
 )
+from backend.app.prompt_lab.application_context_models import (
+    AIApplicationManifest,
+    EvaluationContext,
+    ContextProvenance,
+    ContextDifference,
+    EvaluationContextSnapshot,
+    EpistemicStatus,
+    EvaluationMode,
+)
 from backend.app.prompt_lab.repository import PromptLabRepository
 from backend.app.prompt_lab.prompt_service import PromptService
 from backend.app.prompt_lab.evaluation_service import EvaluationService
 from backend.app.prompt_lab.diagnosis_service import PromptDiagnosisService
+from backend.app.prompt_lab.application_context_service import ApplicationContextService
+from backend.app.prompt_lab.application_context_errors import (
+    ApplicationContextNotFoundError,
+    PromptBindingMismatchError,
+    PromptVersionMismatchError,
+    GitContextMismatchError,
+    ModelContextMissingError,
+    EvaluationSuiteContextMismatchError,
+    ContextNotFrozenError,
+    ContextIntegrityError,
+    DeclaredPromptRuntimeMismatchError,
+)
 from backend.app.prompt_lab.errors import (
     PromptNotFoundError,
     PromptVersionNotFoundError,
@@ -35,7 +56,8 @@ router = APIRouter(prefix="/prompt-lab", tags=["prompt-lab"])
 _repo = PromptLabRepository()
 _prompt_service = PromptService(_repo)
 _diagnosis_service = PromptDiagnosisService()
-_eval_service = EvaluationService(_repo, _prompt_service, _diagnosis_service)
+_context_service = ApplicationContextService(_repo)
+_eval_service = EvaluationService(_repo, _prompt_service, _diagnosis_service, _context_service)
 
 
 # Request schemas
@@ -68,12 +90,34 @@ class CreateSuiteVersionPayload(BaseModel):
 
 
 class RunEvaluationPayload(BaseModel):
-    prompt_id: str
-    prompt_version: int
+    prompt_id: str = ""
+    prompt_version: int = 1
     suite_id: str
-    suite_version: int
+    suite_version: int = 1
     model: str = "mock-agent-v1"
     generation_parameters: Optional[Dict[str, Any]] = None
+    context_id: Optional[str] = None
+    evaluation_mode: EvaluationMode = EvaluationMode.PROMPT_LEVEL
+
+
+class CreateContextPayload(BaseModel):
+    suite_id: str
+    feature_id: Optional[str] = None
+    prompt_id_override: Optional[str] = None
+    prompt_version_override: Optional[int] = None
+    git_commit_override: Optional[str] = None
+    model_override: Optional[str] = None
+    retrieval_override: Optional[Dict[str, Any]] = None
+    tool_override: Optional[Dict[str, Any]] = None
+    parser_override: Optional[Dict[str, Any]] = None
+    application_config_override: Optional[Dict[str, Any]] = None
+    auto_freeze: bool = False
+    verify_runtime: bool = False
+
+
+class ValidateContextPayload(BaseModel):
+    require_frozen: bool = False
+
 
 
 # 1. Prompts & Versions
@@ -171,9 +215,13 @@ def run_evaluation(payload: RunEvaluationPayload):
             suite_version=payload.suite_version,
             model=payload.model,
             generation_parameters=payload.generation_parameters,
+            context_id=payload.context_id,
+            evaluation_mode=payload.evaluation_mode,
         )
-    except (PromptNotFoundError, PromptVersionNotFoundError, EvaluationSuiteNotFoundError) as e:
+    except (PromptNotFoundError, PromptVersionNotFoundError, EvaluationSuiteNotFoundError, ApplicationContextNotFoundError) as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except (ContextNotFrozenError, ContextIntegrityError, ModelContextMissingError, PromptVersionMismatchError) as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -217,3 +265,92 @@ def get_snapshot(snapshot_id: str):
         return snap
     except EvaluationSnapshotTamperedError as e:
         raise HTTPException(status_code=409, detail=f"Snapshot integrity violation: {str(e)}")
+
+
+# 5. Application Context Endpoints (Slice 7.7.1)
+@router.post("/applications/manifest", response_model=AIApplicationManifest, status_code=status.HTTP_201_CREATED)
+def create_application_manifest(manifest: AIApplicationManifest):
+    try:
+        return _context_service.create_application_manifest(manifest)
+    except (PromptBindingMismatchError, ModelContextMissingError, ApplicationContextNotFoundError) as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@router.get("/applications/{application_id}/manifest", response_model=AIApplicationManifest)
+def get_application_manifest(application_id: str):
+    try:
+        return _context_service.get_application_manifest(application_id)
+    except ApplicationContextNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/applications/{application_id}/context", response_model=EvaluationContext, status_code=status.HTTP_201_CREATED)
+def create_evaluation_context(application_id: str, payload: CreateContextPayload):
+    try:
+        return _context_service.create_evaluation_context(
+            application_id=application_id,
+            suite_id=payload.suite_id,
+            feature_id=payload.feature_id,
+            prompt_id_override=payload.prompt_id_override,
+            prompt_version_override=payload.prompt_version_override,
+            git_commit_override=payload.git_commit_override,
+            model_override=payload.model_override,
+            retrieval_override=payload.retrieval_override,
+            tool_override=payload.tool_override,
+            parser_override=payload.parser_override,
+            application_config_override=payload.application_config_override,
+            auto_freeze=payload.auto_freeze,
+            verify_runtime=payload.verify_runtime,
+        )
+    except ApplicationContextNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except DeclaredPromptRuntimeMismatchError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@router.get("/contexts/{context_id}", response_model=EvaluationContext)
+def get_evaluation_context(context_id: str):
+    try:
+        return _context_service.get_evaluation_context(context_id)
+    except ApplicationContextNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/contexts/{context_id}/validate")
+def validate_evaluation_context(context_id: str, payload: Optional[ValidateContextPayload] = None):
+    try:
+        ctx = _context_service.get_evaluation_context(context_id)
+        require_frozen = payload.require_frozen if payload else False
+        is_valid = _context_service.validate_evaluation_context(ctx, require_frozen=require_frozen)
+        return {
+            "is_valid": is_valid,
+            "context_id": ctx.context_id,
+            "context_hash": ctx.context_hash,
+            "status": "VALID",
+        }
+    except ApplicationContextNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except (ContextNotFrozenError, ContextIntegrityError, ModelContextMissingError, PromptVersionMismatchError) as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@router.get("/contexts/{context_id}/provenance", response_model=List[ContextProvenance])
+def get_context_provenance(context_id: str):
+    try:
+        return _context_service.get_context_provenance(context_id)
+    except ApplicationContextNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/contexts/compare", response_model=ContextDifference)
+def compare_contexts(
+    context_a: str = Query(..., description="Baseline context ID"),
+    context_b: str = Query(..., description="Candidate context ID"),
+):
+    try:
+        return _context_service.compare_evaluation_contexts(context_a, context_b)
+    except ApplicationContextNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+

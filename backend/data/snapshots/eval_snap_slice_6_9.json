@@ -1,6 +1,6 @@
 {
   "snapshot_id": "eval_snap_slice_6_9",
-  "created_at": "2026-09-25T19:27:22.850894+00:00",
+  "created_at": "2026-09-28T06:49:01.434075+00:00",
   "protocol_version": "CrossApplicationEvaluationProtocol v1.0",
   "model_version": "v1.1-scaled-logistic",
   "feature_vector_version": "v1.0-temporal",
@@ -188,8 +188,8 @@
     "run_ff296020->run_9d722d0b"
   ],
   "excluded_population_counts": {
-    "DEMO": 200,
-    "SYNTHETIC": 176,
+    "DEMO": 218,
+    "SYNTHETIC": 192,
     "CONTROLLED_EXPERIMENT": 0,
     "REAL_AI_AGENT": 1
   },

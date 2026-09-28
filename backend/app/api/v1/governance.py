@@ -15,6 +15,8 @@ from backend.app.governance.models import (
     RiskLevel,
     DecisionType,
     ActorType,
+    AuthorizationStatus,
+    CanApplyResult,
 )
 from backend.app.governance.repository import GovernanceRepository
 from backend.app.governance.evidence_service import GovernanceEvidenceService
@@ -219,10 +221,59 @@ def reject_request(
 
 
 # 3. Authorizations
+@router.get("/authorizations", response_model=List[ChangeAuthorization])
+def list_authorizations(status: Optional[AuthorizationStatus] = None):
+    return _repo.list_authorizations(status=status)
+
+
 @router.get("/authorizations/{authorization_id}", response_model=ChangeAuthorization)
 def get_authorization(authorization_id: str):
     try:
         return _auth_svc.get_authorization(authorization_id)
+    except ChangeAuthorizationNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+class CanApplyRequestDTO(BaseModel):
+    change_type: RecommendationType
+    subject_id: str
+    target_version: Optional[str] = None
+    target_commit_sha: Optional[str] = None
+    current_evidence_package_id: Optional[str] = None
+    requested_scope: str = "PROMOTE"
+
+
+@router.post("/authorizations/{authorization_id}/can-apply", response_model=CanApplyResult)
+def evaluate_can_apply(
+    authorization_id: str,
+    dto: CanApplyRequestDTO,
+):
+    """
+    Evaluates whether a consequential change can be applied under the specified authorization.
+    Deterministic gate returning GateDecision (AUTHORIZED or BLOCKED).
+    """
+    return _auth_svc.can_apply(
+        change_type=dto.change_type,
+        subject_id=dto.subject_id,
+        authorization_id=authorization_id,
+        target_version=dto.target_version,
+        target_commit_sha=dto.target_commit_sha,
+        current_evidence_package_id=dto.current_evidence_package_id,
+        requested_scope=dto.requested_scope,
+    )
+
+
+@router.post("/authorizations/{authorization_id}/consume", response_model=ChangeAuthorization)
+def consume_authorization(
+    authorization_id: str,
+    human_user: str = Depends(get_authenticated_human),
+):
+    try:
+        return _auth_svc.consume_authorization(
+            authorization_id=authorization_id,
+            actor_id=human_user,
+            actor_type=ActorType.HUMAN,
+        )
     except ChangeAuthorizationNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
 

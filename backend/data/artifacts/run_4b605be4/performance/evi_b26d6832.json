@@ -1,0 +1,10 @@
+{
+  "category": "BROWSER_ERROR",
+  "title": "Playwright Execution Failed: BROWSER_ERROR",
+  "message": "Question evaluation anomaly: Options array missing required 'CA' (Correct Answer) indicator and contains duplicate distractor value.",
+  "stack_trace": "Traceback (most recent call last):\n  File \"C:\\Users\\HP\\.gemini\\antigravity-ide\\scratch\\New project\\backend\\app\\execution\\playwright_runner.py\", line 1437, in _exec_workflow_question_generator\n    raise PlaywrightError(\"Question evaluation anomaly: Options array missing required 'CA' (Correct Answer) indicator and contains duplicate distractor value.\")\nplaywright._impl._errors.Error: Question evaluation anomaly: Options array missing required 'CA' (Correct Answer) indicator and contains duplicate distractor value.\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Users\\HP\\.gemini\\antigravity-ide\\scratch\\New project\\backend\\app\\execution\\playwright_runner.py\", line 158, in execute\n    await self._exec_workflow_question_generator(run, page, target_url, captured_console_logs, captured_network_events, simulate_failure=True)\n  File \"C:\\Users\\HP\\.gemini\\antigravity-ide\\scratch\\New project\\backend\\app\\execution\\playwright_runner.py\", line 1454, in _exec_workflow_question_generator\n    raise PlaywrightError(str(e))\nplaywright._impl._errors.Error: Question evaluation anomaly: Options array missing required 'CA' (Correct Answer) indicator and contains duplicate distractor value.\n",
+  "failed_action": "ASSERT",
+  "selector": null,
+  "captured_console_count": 0,
+  "captured_network_count": 6
+}

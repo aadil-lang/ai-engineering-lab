@@ -1,0 +1,49 @@
+{
+  "snapshot_id": "eval_snap_prompt_context_7_7_1",
+  "protocol_version": "AIApplicationContextProtocol v1.0",
+  "context_id": "ctx_eval_snap_7_7_1_context",
+  "context_hash": "3c8f2b4a1d6e9f0a7c5b8e2d4f1a6c9e0b7d3f5a1c8e2b4d6f9a0c7e5b1d3f8a",
+  "application_id": "customer_support_app",
+  "feature_id": "refund_policy_triage",
+  "git_commit_sha": "7f8a9b1c2d3e4f5a6b7c8d9e0f1a2b3c",
+  "prompt_id": "customer_support_triage",
+  "prompt_version": 18,
+  "model": "claude-3-5-sonnet",
+  "model_version": "20241022",
+  "retrieval_configuration": {
+    "pipeline": "dense_hybrid_v1",
+    "top_k": 5,
+    "similarity_threshold": 0.82
+  },
+  "tool_configuration": {
+    "tools": [
+      "refund_processor",
+      "order_status"
+    ],
+    "permission_mode": "constrained"
+  },
+  "parser_configuration": {
+    "type": "json_schema",
+    "version": "v2.0",
+    "strict": true
+  },
+  "evaluation_suite_id": "suite_support_edge_cases",
+  "evaluation_suite_version": 1,
+  "results": {
+    "total_cases": 25,
+    "passed_cases": 25,
+    "failed_cases": 0,
+    "pass_rate": 1.0,
+    "deterministic_pass_rate": 1.0,
+    "grounding_pass_rate": 1.0
+  },
+  "evaluator_versions": {
+    "CompositeEvaluator": "v1.0",
+    "JSONSchemaEvaluator": "v1.0",
+    "RuleBasedEvaluator": "v1.0",
+    "GroundingEvaluator": "v1.0",
+    "SemanticJudgeEvaluator": "v1.0"
+  },
+  "created_at": "2026-09-27T14:40:00Z",
+  "sha256": "99c67eceea99552def8bbeda3d448b6e0a71d4197bd3e2f211cf0b4c446dd8a5"
+}

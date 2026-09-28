@@ -123,6 +123,68 @@ from backend.app.models.governance_tools import (
     GetGovernanceAuditRequest,
     GetGovernanceAuditResponse,
 )
+from backend.app.models.application_context_tools import (
+    GetApplicationManifestRequest,
+    GetApplicationManifestResponse,
+    GetEvaluationContextRequest,
+    GetEvaluationContextResponse,
+    ValidateEvaluationContextRequest,
+    ValidateEvaluationContextResponse,
+    GetContextProvenanceRequest,
+    GetContextProvenanceResponse,
+    CompareEvaluationContextsRequest,
+    CompareEvaluationContextsResponse,
+)
+from backend.app.models.memory_tools import (
+    SearchEngineeringMemoryRequest,
+    SearchEngineeringMemoryResponse,
+    GetEngineeringMemoryRequest,
+    GetEngineeringMemoryResponse,
+    GetMemoryEvidenceRequest,
+    GetMemoryEvidenceResponse,
+    GetMemoryHistoryRequest,
+    GetMemoryHistoryResponse,
+)
+from backend.app.models.change_impact_tools import (
+    AnalyzeChangeImpactRequest,
+    AnalyzeChangeImpactResponse,
+    GetChangeImpactRequest,
+    GetChangeImpactResponse,
+    CreateRegressionPlanRequest,
+    CreateRegressionPlanResponse,
+    GetRegressionPlanRequest,
+    GetRegressionPlanResponse,
+    ExecuteRegressionPlanRequest,
+    ExecuteRegressionPlanResponse,
+    GetRegressionFindingsRequest,
+    GetRegressionFindingsResponse,
+    CompareChangeBehaviorRequest,
+    CompareChangeBehaviorResponse,
+)
+from backend.app.models.provenance_tools import (
+    RecordLifecycleEventRequest,
+    RecordLifecycleEventResponse,
+    GetLifecycleEventRequest,
+    GetLifecycleEventResponse,
+    GetProvenanceTraceRequest,
+    GetProvenanceTraceResponse,
+    VerifyProvenanceChainRequest,
+    VerifyProvenanceChainResponse,
+)
+from backend.app.models.system_tools import (
+    GetEnvironmentDiagnosticsRequest,
+    GetEnvironmentDiagnosticsResponse,
+    GetSystemReadinessRequest,
+    GetSystemReadinessResponse,
+    GetReleaseManifestRequest,
+    GetReleaseManifestResponse,
+    RunCanonicalDemonstrationRequest,
+    RunCanonicalDemonstrationResponse,
+)
+from backend.app.system.doctor import EnvironmentDoctor
+from backend.app.system.manifest import generate_release_manifest
+from backend.app.system.demonstration import CanonicalDemonstrationRunner
+from backend.app.prompt_lab.application_context_service import ApplicationContextService
 from backend.app.control_plane.context import ToolInvocationContext
 from backend.app.control_plane.errors import (
     ApplicationNotFoundError,
@@ -133,6 +195,7 @@ from backend.app.control_plane.errors import (
     InsufficientEvidenceError,
     ReliabilityAbstainedError,
     InvalidRequestError,
+    ResourceNotFoundError,
 )
 from backend.app.control_plane.registry import ToolRegistry, ToolDefinition
 from backend.app.repositories.sqlite_repository import SQLiteRepository
@@ -157,6 +220,11 @@ class ReliabilityControlPlane:
         enable_github_tools: bool = False,
         enable_prompt_lab_tools: bool = False,
         enable_governance_tools: bool = False,
+        enable_context_tools: bool = False,
+        enable_memory_tools: bool = False,
+        enable_change_impact_tools: bool = False,
+        enable_provenance_tools: bool = False,
+        enable_system_tools: bool = False,
     ):
         self.db_path = db_path
         self.repo = SQLiteRepository(db_path=db_path)
@@ -191,31 +259,46 @@ class ReliabilityControlPlane:
         self._register_all_tools()
 
         # Lifecycle Services
-        self.git_service = None
-        self.lifecycle_repo = None
-        self.pr_service = None
-        self.review_service = None
-        self.ci_service = None
-        self.release_service = None
+        self.git_service: Any = None
+        self.lifecycle_repo: Any = None
+        self.pr_service: Any = None
+        self.review_service: Any = None
+        self.ci_service: Any = None
+        self.release_service: Any = None
 
         # GitHub Services
-        self.github_client = None
-        self.github_sync_repo = None
-        self.github_pr_service = None
-        self.github_actions_service = None
+        self.github_client: Any = None
+        self.github_sync_repo: Any = None
+        self.github_pr_service: Any = None
+        self.github_actions_service: Any = None
 
         # Prompt Lab Services
-        self.prompt_repo = None
-        self.prompt_service = None
-        self.evaluation_service = None
-        self.prompt_diagnosis_service = None
+        self.prompt_repo: Any = None
+        self.prompt_service: Any = None
+        self.evaluation_service: Any = None
+        self.prompt_diagnosis_service: Any = None
 
         # Governance Services
-        self.governance_repo = None
-        self.governance_evidence_service = None
-        self.governance_policy_service = None
-        self.authorization_service = None
-        self.governance_approval_service = None
+        self.governance_repo: Any = None
+        self.governance_evidence_service: Any = None
+        self.governance_policy_service: Any = None
+        self.authorization_service: Any = None
+        self.governance_approval_service: Any = None
+
+        # Application Context Services
+        self.application_context_service: Any = None
+
+        # Engineering Memory Services
+        self.memory_repo: Any = None
+        self.memory_vector_index: Any = None
+        self.memory_embedding_provider: Any = None
+        self.memory_rag: Any = None
+
+        # Change Impact Services
+        self.change_impact_service: Any = None
+
+        # Provenance Services
+        self.provenance_service: Any = None
 
         if enable_lifecycle_tools or os.environ.get("ENABLE_LIFECYCLE_TOOLS") == "1":
             self.register_lifecycle_tools()
@@ -228,6 +311,21 @@ class ReliabilityControlPlane:
 
         if enable_governance_tools or os.environ.get("ENABLE_GOVERNANCE_TOOLS") == "1":
             self.register_governance_tools()
+
+        if enable_context_tools or os.environ.get("ENABLE_CONTEXT_TOOLS") == "1":
+            self.register_context_tools()
+
+        if enable_memory_tools or os.environ.get("ENABLE_MEMORY_TOOLS") == "1":
+            self.register_memory_tools()
+
+        if enable_change_impact_tools or os.environ.get("ENABLE_CHANGE_IMPACT_TOOLS") == "1":
+            self.register_change_impact_tools()
+
+        if enable_provenance_tools or os.environ.get("ENABLE_PROVENANCE_TOOLS") == "1":
+            self.register_provenance_tools()
+
+        if enable_system_tools or os.environ.get("ENABLE_SYSTEM_TOOLS") == "1":
+            self.register_system_tools()
 
     def _register_all_tools(self):
         """Registers the 10 canonical agent tools into the registry."""
@@ -394,10 +492,13 @@ class ReliabilityControlPlane:
         for tc in test_cases:
             if tc.steps:
                 for s in tc.steps:
-                    if isinstance(s, dict) and s.get("action") == "NAVIGATE":
-                        routes.append(s.get("url", "/"))
-                    elif hasattr(s, "action_type") and s.action_type == "NAVIGATE":
-                        routes.append(s.value or "/")
+                    if isinstance(s, dict):
+                        if s.get("action") == "NAVIGATE":
+                            routes.append(s.get("url", "/"))
+                        elif s.get("action_type") == "NAVIGATE":
+                            routes.append(s.get("value", "/"))
+                    elif hasattr(s, "action_type") and getattr(s, "action_type") == "NAVIGATE":
+                        routes.append(getattr(s, "value", "/") or "/")
         capabilities = ["FUNCTIONAL_QA", "REAL_PLAYWRIGHT_EXECUTION", "PREDICTIVE_FAILURE_ESTIMATION"]
 
         last_tested = runs[-1].started_at if runs else None
@@ -1830,6 +1931,620 @@ class ReliabilityControlPlane:
         if req.limit:
             records = records[: req.limit]
         return GetGovernanceAuditResponse(audit_records=records)
+
+    # =========================================================================
+    # Application Context Tools (Tools 46 - 50)
+    # =========================================================================
+    def _ensure_context_init(self):
+        if not self.prompt_repo:
+            from backend.app.prompt_lab.repository import PromptLabRepository
+            self.prompt_repo = PromptLabRepository(self.db_path)
+        if not self.application_context_service:
+            self.application_context_service = ApplicationContextService(self.prompt_repo)
+
+    def register_context_tools(self):
+        self._ensure_context_init()
+
+        # Tool 46: get_application_manifest
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_application_manifest",
+                description="Retrieves the declared AIApplicationManifest for an application.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetApplicationManifestRequest,
+                response_model=GetApplicationManifestResponse,
+                handler=self.get_application_manifest,
+                version="1.0",
+            )
+        )
+
+        # Tool 47: get_evaluation_context
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_evaluation_context",
+                description="Retrieves a frozen EvaluationContext binding prompt, model, retrieval, and tooling.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetEvaluationContextRequest,
+                response_model=GetEvaluationContextResponse,
+                handler=self.get_evaluation_context,
+                version="1.0",
+            )
+        )
+
+        # Tool 48: validate_evaluation_context
+        self.registry.register_tool(
+            ToolDefinition(
+                name="validate_evaluation_context",
+                description="Validates EvaluationContext structure, required components, and cryptographic integrity.",
+                mode=ToolMode.READ_ONLY,
+                request_model=ValidateEvaluationContextRequest,
+                response_model=ValidateEvaluationContextResponse,
+                handler=self.validate_evaluation_context,
+                version="1.0",
+            )
+        )
+
+        # Tool 49: get_context_provenance
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_context_provenance",
+                description="Retrieves provenance records and epistemic statuses for all components in an EvaluationContext.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetContextProvenanceRequest,
+                response_model=GetContextProvenanceResponse,
+                handler=self.get_context_provenance,
+                version="1.0",
+            )
+        )
+
+        # Tool 50: compare_evaluation_contexts
+        self.registry.register_tool(
+            ToolDefinition(
+                name="compare_evaluation_contexts",
+                description="Compares two EvaluationContexts across 10 dimensions and detects multi-variable changes.",
+                mode=ToolMode.READ_ONLY,
+                request_model=CompareEvaluationContextsRequest,
+                response_model=CompareEvaluationContextsResponse,
+                handler=self.compare_evaluation_contexts,
+                version="1.0",
+            )
+        )
+
+    def get_application_manifest(self, req: GetApplicationManifestRequest, context: ToolInvocationContext) -> GetApplicationManifestResponse:
+        self._ensure_context_init()
+        manifest = self.application_context_service.get_application_manifest(req.application_id)
+        return GetApplicationManifestResponse(manifest=manifest)
+
+    def get_evaluation_context(self, req: GetEvaluationContextRequest, context: ToolInvocationContext) -> GetEvaluationContextResponse:
+        self._ensure_context_init()
+        ctx = self.application_context_service.get_evaluation_context(req.context_id)
+        return GetEvaluationContextResponse(context=ctx)
+
+    def validate_evaluation_context(self, req: ValidateEvaluationContextRequest, context: ToolInvocationContext) -> ValidateEvaluationContextResponse:
+        self._ensure_context_init()
+        ctx = self.application_context_service.get_evaluation_context(req.context_id)
+        is_valid = self.application_context_service.validate_evaluation_context(ctx, require_frozen=req.require_frozen)
+        return ValidateEvaluationContextResponse(
+            is_valid=is_valid,
+            context_id=ctx.context_id,
+            context_hash=ctx.context_hash,
+            validation_status="VALID",
+            message="Context is structurally valid and untampered.",
+        )
+
+    def get_context_provenance(self, req: GetContextProvenanceRequest, context: ToolInvocationContext) -> GetContextProvenanceResponse:
+        self._ensure_context_init()
+        prov = self.application_context_service.get_context_provenance(req.context_id)
+        return GetContextProvenanceResponse(
+            context_id=req.context_id,
+            provenance=prov,
+        )
+
+    def compare_evaluation_contexts(self, req: CompareEvaluationContextsRequest, context: ToolInvocationContext) -> CompareEvaluationContextsResponse:
+        self._ensure_context_init()
+        diff = self.application_context_service.compare_evaluation_contexts(req.context_id_a, req.context_id_b)
+        return CompareEvaluationContextsResponse(difference=diff)
+
+    def _ensure_memory_init(self):
+        if not hasattr(self, "memory_repo") or self.memory_repo is None:
+            from backend.app.memory.repository import EngineeringMemoryRepository
+            from backend.app.memory.vector_index import VectorMemoryIndex
+            from backend.app.memory.embedding import LocalDeterministicEmbeddingProvider
+            from backend.app.memory.hybrid_rag import HybridRAGService
+
+            self.memory_repo = EngineeringMemoryRepository()
+            self.memory_embedding_provider = LocalDeterministicEmbeddingProvider()
+            self.memory_vector_index = VectorMemoryIndex()
+            self.memory_rag = HybridRAGService(
+                repository=self.memory_repo,
+                vector_index=self.memory_vector_index,
+                embedding_provider=self.memory_embedding_provider,
+            )
+
+    def register_memory_tools(self):
+        """Registers the 4 canonical MCP memory tools."""
+        self._ensure_memory_init()
+
+        # Tool 51: search_engineering_memory
+        self.registry.register_tool(
+            ToolDefinition(
+                name="search_engineering_memory",
+                description="Performs hybrid metadata and semantic retrieval on engineering memory.",
+                mode=ToolMode.READ_ONLY,
+                request_model=SearchEngineeringMemoryRequest,
+                response_model=SearchEngineeringMemoryResponse,
+                handler=self.search_engineering_memory,
+                version="1.0",
+            )
+        )
+
+        # Tool 52: get_engineering_memory
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_engineering_memory",
+                description="Retrieves a single canonical engineering memory by its ID.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetEngineeringMemoryRequest,
+                response_model=GetEngineeringMemoryResponse,
+                handler=self.get_engineering_memory,
+                version="1.0",
+            )
+        )
+
+        # Tool 53: get_memory_evidence
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_memory_evidence",
+                description="Retrieves execution evidence IDs and provenance supporting an engineering memory.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetMemoryEvidenceRequest,
+                response_model=GetMemoryEvidenceResponse,
+                handler=self.get_memory_evidence,
+                version="1.0",
+            )
+        )
+
+        # Tool 54: get_memory_history
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_memory_history",
+                description="Retrieves the immutable audit trail of mutations for an engineering memory.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetMemoryHistoryRequest,
+                response_model=GetMemoryHistoryResponse,
+                handler=self.get_memory_history,
+                version="1.0",
+            )
+        )
+
+    def search_engineering_memory(self, req: SearchEngineeringMemoryRequest, context: ToolInvocationContext) -> SearchEngineeringMemoryResponse:
+        self._ensure_memory_init()
+        results = self.memory_rag.retrieve(
+            query=req.query,
+            application_id=req.application_id,
+            target_id=req.target_id,
+            component_id=req.component_id,
+            workflow_id=req.workflow_id,
+            top_k=req.top_k,
+            current_prompt_version=req.current_prompt_version,
+            current_git_commit=req.current_git_commit,
+            semantic_weight=req.semantic_weight,
+        )
+        return SearchEngineeringMemoryResponse(results=results, total_found=len(results))
+
+    def get_engineering_memory(self, req: GetEngineeringMemoryRequest, context: ToolInvocationContext) -> GetEngineeringMemoryResponse:
+        self._ensure_memory_init()
+        mem = self.memory_repo.get_memory(req.memory_id)
+        return GetEngineeringMemoryResponse(memory=mem)
+
+    def get_memory_evidence(self, req: GetMemoryEvidenceRequest, context: ToolInvocationContext) -> GetMemoryEvidenceResponse:
+        self._ensure_memory_init()
+        mem = self.memory_repo.get_memory(req.memory_id)
+        if not mem:
+            raise ResourceNotFoundError(f"Memory {req.memory_id} not found")
+        return GetMemoryEvidenceResponse(
+            memory_id=mem.memory_id,
+            source_type=mem.source_type,
+            source_run_id=mem.source_run_id,
+            source_evidence_ids=mem.source_evidence_ids,
+            source_diagnosis_id=mem.source_diagnosis_id,
+            context_id=mem.context_id,
+            context_hash=mem.context_hash,
+            git_commit=mem.git_commit,
+            prompt_version=mem.prompt_version,
+        )
+
+    def get_memory_history(self, req: GetMemoryHistoryRequest, context: ToolInvocationContext) -> GetMemoryHistoryResponse:
+        self._ensure_memory_init()
+        with self.memory_repo._get_connection() as conn:
+            rows = conn.execute(
+                "SELECT * FROM memory_audit_logs WHERE memory_id = ? ORDER BY timestamp DESC",
+                (req.memory_id,),
+            ).fetchall()
+            logs = [
+                {
+                    "log_id": r["log_id"],
+                    "memory_id": r["memory_id"],
+                    "event_type": r["event_type"],
+                    "details": r["details"],
+                    "timestamp": r["timestamp"],
+                }
+                for r in rows
+            ]
+        return GetMemoryHistoryResponse(memory_id=req.memory_id, audit_logs=logs)
+
+    def _ensure_change_impact_init(self):
+        if not hasattr(self, "change_impact_service") or self.change_impact_service is None:
+            self._ensure_memory_init()
+            from backend.app.change_impact.service import ChangeImpactService
+            self.change_impact_service = ChangeImpactService(
+                memory_repository=self.memory_repo,
+                app_context_service=self.application_context_service
+            )
+
+    def register_change_impact_tools(self):
+        """Registers the 7 canonical Slice 8K Change Impact & Adaptive Regression MCP tools."""
+        self._ensure_change_impact_init()
+
+        # Tool 55: analyze_change_impact
+        self.registry.register_tool(
+            ToolDefinition(
+                name="analyze_change_impact",
+                description="Analyzes changes across code, prompt, model, retrieval, tools, contracts, and builds the impact graph.",
+                mode=ToolMode.READ_ONLY,
+                request_model=AnalyzeChangeImpactRequest,
+                response_model=AnalyzeChangeImpactResponse,
+                handler=self.analyze_change_impact,
+                version="1.0",
+            )
+        )
+
+        # Tool 56: get_change_impact
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_change_impact",
+                description="Retrieves the detailed Change Impact Graph and affected entities for a ChangeSet.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetChangeImpactRequest,
+                response_model=GetChangeImpactResponse,
+                handler=self.get_change_impact,
+                version="1.0",
+            )
+        )
+
+        # Tool 57: create_regression_plan
+        self.registry.register_tool(
+            ToolDefinition(
+                name="create_regression_plan",
+                description="Formulates an AdaptiveRegressionPlan with explicit DEEP, TARGETED, and SMOKE scopes.",
+                mode=ToolMode.ACTION,
+                request_model=CreateRegressionPlanRequest,
+                response_model=CreateRegressionPlanResponse,
+                handler=self.create_regression_plan,
+                version="1.0",
+                permission_mode="open",
+            )
+        )
+
+        # Tool 58: get_regression_plan
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_regression_plan",
+                description="Retrieves an AdaptiveRegressionPlan by ID including freshness and scope status.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetRegressionPlanRequest,
+                response_model=GetRegressionPlanResponse,
+                handler=self.get_regression_plan,
+                version="1.0",
+            )
+        )
+
+        # Tool 59: execute_regression_plan
+        self.registry.register_tool(
+            ToolDefinition(
+                name="execute_regression_plan",
+                description="Executes a planned regression suite while validating exact Git candidate SHA freshness.",
+                mode=ToolMode.ACTION,
+                request_model=ExecuteRegressionPlanRequest,
+                response_model=ExecuteRegressionPlanResponse,
+                handler=self.execute_regression_plan,
+                version="1.0",
+                permission_mode="open",
+            )
+        )
+
+        # Tool 60: get_regression_findings
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_regression_findings",
+                description="Retrieves detected regressions requiring human governance review.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetRegressionFindingsRequest,
+                response_model=GetRegressionFindingsResponse,
+                handler=self.get_regression_findings,
+                version="1.0",
+            )
+        )
+
+        # Tool 61: compare_change_behavior
+        self.registry.register_tool(
+            ToolDefinition(
+                name="compare_change_behavior",
+                description="Evaluates baseline vs candidate run behavior and blocks multi-variable causal attribution.",
+                mode=ToolMode.READ_ONLY,
+                request_model=CompareChangeBehaviorRequest,
+                response_model=CompareChangeBehaviorResponse,
+                handler=self.compare_change_behavior,
+                version="1.0",
+            )
+        )
+
+    def analyze_change_impact(self, req: AnalyzeChangeImpactRequest, context: ToolInvocationContext) -> AnalyzeChangeImpactResponse:
+        self._ensure_change_impact_init()
+        from backend.app.change_impact.models import ChangeSet
+        cs = ChangeSet(
+            repository=req.repository,
+            base_commit=req.base_commit,
+            candidate_commit=req.candidate_commit,
+            changed_files=req.changed_files,
+            changed_prompts=req.changed_prompts,
+            changed_models=req.changed_models,
+            changed_retrieval=req.changed_retrieval,
+            changed_tools=req.changed_tools,
+            changed_configuration=req.changed_configuration,
+        )
+        impact = self.change_impact_service.analyze_change(cs, application_id=req.application_id)
+        return AnalyzeChangeImpactResponse(change_set_id=cs.change_set_id, impact=impact)
+
+    def get_change_impact(self, req: GetChangeImpactRequest, context: ToolInvocationContext) -> GetChangeImpactResponse:
+        self._ensure_change_impact_init()
+        impact = self.change_impact_service.get_impact(req.change_set_id)
+        return GetChangeImpactResponse(impact=impact)
+
+    def create_regression_plan(self, req: CreateRegressionPlanRequest, context: ToolInvocationContext) -> CreateRegressionPlanResponse:
+        self._ensure_change_impact_init()
+        plan = self.change_impact_service.create_regression_plan(
+            change_set_id=req.change_set_id,
+            target_id=req.target_id,
+            application_id=req.application_id,
+            budget=req.budget
+        )
+        return CreateRegressionPlanResponse(plan=plan)
+
+    def get_regression_plan(self, req: GetRegressionPlanRequest, context: ToolInvocationContext) -> GetRegressionPlanResponse:
+        self._ensure_change_impact_init()
+        plan = self.change_impact_service.get_regression_plan(req.plan_id)
+        return GetRegressionPlanResponse(plan=plan)
+
+    def execute_regression_plan(self, req: ExecuteRegressionPlanRequest, context: ToolInvocationContext) -> ExecuteRegressionPlanResponse:
+        self._ensure_change_impact_init()
+        res = self.change_impact_service.execute_regression_plan(
+            plan_id=req.plan_id,
+            candidate_commit=req.candidate_commit
+        )
+        return ExecuteRegressionPlanResponse(
+            plan_id=res["plan_id"],
+            status=res["status"],
+            executed_items=res["executed_items"],
+            scope_summary=res["scope_summary"]
+        )
+
+    def get_regression_findings(self, req: GetRegressionFindingsRequest, context: ToolInvocationContext) -> GetRegressionFindingsResponse:
+        self._ensure_change_impact_init()
+        findings = self.change_impact_service.get_findings(req.plan_id)
+        return GetRegressionFindingsResponse(plan_id=req.plan_id, findings=findings)
+
+    def compare_change_behavior(self, req: CompareChangeBehaviorRequest, context: ToolInvocationContext) -> CompareChangeBehaviorResponse:
+        self._ensure_change_impact_init()
+        comp = self.change_impact_service.compare_runs(
+            plan_id=req.plan_id,
+            baseline_run_id=req.baseline_run_id,
+            candidate_run_id=req.candidate_run_id,
+            baseline_results=req.baseline_results,
+            candidate_results=req.candidate_results,
+            contract_evaluations=req.contract_evaluations,
+            evidence_ids=req.evidence_ids
+        )
+        return CompareChangeBehaviorResponse(comparison=comp)
+
+    def _ensure_provenance_init(self):
+        if not hasattr(self, "provenance_service") or self.provenance_service is None:
+            from backend.app.provenance.repository import ProvenanceRepository
+            from backend.app.provenance.service import ProvenanceService
+            repo = ProvenanceRepository(db_path=self.db_path)
+            self.provenance_service = ProvenanceService(repository=repo)
+
+    def register_provenance_tools(self):
+        """Registers the 4 canonical Slice 8L Unified Engineering Provenance MCP tools."""
+        self._ensure_provenance_init()
+
+        # Tool 62: record_lifecycle_event
+        self.registry.register_tool(
+            ToolDefinition(
+                name="record_lifecycle_event",
+                description="Appends an immutable lifecycle event to the cryptographic provenance chain.",
+                mode=ToolMode.ACTION,
+                request_model=RecordLifecycleEventRequest,
+                response_model=RecordLifecycleEventResponse,
+                handler=self.record_lifecycle_event,
+                version="1.0",
+                permission_mode="open",
+            )
+        )
+
+        # Tool 63: get_lifecycle_event
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_lifecycle_event",
+                description="Retrieves a specific lifecycle event record by ID.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetLifecycleEventRequest,
+                response_model=GetLifecycleEventResponse,
+                handler=self.get_lifecycle_event,
+                version="1.0",
+            )
+        )
+
+        # Tool 64: get_provenance_trace
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_provenance_trace",
+                description="Retrieves the complete end-to-end provenance timeline for a correlation ID.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetProvenanceTraceRequest,
+                response_model=GetProvenanceTraceResponse,
+                handler=self.get_provenance_trace,
+                version="1.0",
+            )
+        )
+
+        # Tool 65: verify_provenance_chain
+        self.registry.register_tool(
+            ToolDefinition(
+                name="verify_provenance_chain",
+                description="Audits the cryptographic SHA-256 event chain to detect tampering or broken sequencing.",
+                mode=ToolMode.READ_ONLY,
+                request_model=VerifyProvenanceChainRequest,
+                response_model=VerifyProvenanceChainResponse,
+                handler=self.verify_provenance_chain,
+                version="1.0",
+            )
+        )
+
+    def record_lifecycle_event(self, req: RecordLifecycleEventRequest, context: ToolInvocationContext) -> RecordLifecycleEventResponse:
+        self._ensure_provenance_init()
+        evt = self.provenance_service.record_event(
+            event_type=req.event_type,
+            correlation_id=req.correlation_id,
+            actor_type=req.actor_type,
+            actor_id=req.actor_id,
+            application_id=req.application_id,
+            target_id=req.target_id,
+            run_id=req.run_id,
+            test_case_id=req.test_case_id,
+            change_set_id=req.change_set_id,
+            plan_id=req.plan_id,
+            memory_id=req.memory_id,
+            evidence_id=req.evidence_id,
+            diagnosis_id=req.diagnosis_id,
+            remediation_id=req.remediation_id,
+            governance_id=req.governance_id,
+            authorization_id=req.authorization_id,
+            git_commit=req.git_commit,
+            pull_request_id=req.pull_request_id,
+            ci_run_id=req.ci_run_id,
+            context_id=req.context_id,
+            parent_event_id=req.parent_event_id,
+            metadata=req.metadata,
+        )
+        return RecordLifecycleEventResponse(event=evt)
+
+    def get_lifecycle_event(self, req: GetLifecycleEventRequest, context: ToolInvocationContext) -> GetLifecycleEventResponse:
+        self._ensure_provenance_init()
+        evt = self.provenance_service.get_event(req.event_id)
+        return GetLifecycleEventResponse(event=evt)
+
+    def get_provenance_trace(self, req: GetProvenanceTraceRequest, context: ToolInvocationContext) -> GetProvenanceTraceResponse:
+        self._ensure_provenance_init()
+        trace = self.provenance_service.get_provenance_trace(req.correlation_id)
+        return GetProvenanceTraceResponse(trace=trace)
+
+    def verify_provenance_chain(self, req: VerifyProvenanceChainRequest, context: ToolInvocationContext) -> VerifyProvenanceChainResponse:
+        self._ensure_provenance_init()
+        res = self.provenance_service.verify_chain(correlation_id=req.correlation_id)
+        return VerifyProvenanceChainResponse(result=res)
+
+    def register_system_tools(self):
+        """Registers the 4 canonical Slice 8M System Diagnostics & Demonstration MCP tools."""
+        # Tool 66: get_environment_diagnostics
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_environment_diagnostics",
+                description="Performs deterministic environment diagnostics across runtime, database, browser, and models.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetEnvironmentDiagnosticsRequest,
+                response_model=GetEnvironmentDiagnosticsResponse,
+                handler=self.get_environment_diagnostics,
+                version="1.0",
+            )
+        )
+
+        # Tool 67: get_system_readiness
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_system_readiness",
+                description="Returns the authoritative platform readiness contract and capability states.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetSystemReadinessRequest,
+                response_model=GetSystemReadinessResponse,
+                handler=self.get_system_readiness,
+                version="1.0",
+            )
+        )
+
+        # Tool 68: get_release_manifest
+        self.registry.register_tool(
+            ToolDefinition(
+                name="get_release_manifest",
+                description="Generates the machine-readable Engineering Lab v1 Release Manifest.",
+                mode=ToolMode.READ_ONLY,
+                request_model=GetReleaseManifestRequest,
+                response_model=GetReleaseManifestResponse,
+                handler=self.get_release_manifest,
+                version="1.0",
+            )
+        )
+
+        # Tool 69: run_canonical_demonstration
+        self.registry.register_tool(
+            ToolDefinition(
+                name="run_canonical_demonstration",
+                description="Executes the full end-to-end demonstration lifecycle on the Question Generator target.",
+                mode=ToolMode.ACTION,
+                request_model=RunCanonicalDemonstrationRequest,
+                response_model=RunCanonicalDemonstrationResponse,
+                handler=self.run_canonical_demonstration,
+                version="1.0",
+                permission_mode="open",
+            )
+        )
+
+    def get_environment_diagnostics(
+        self, req: GetEnvironmentDiagnosticsRequest, context: ToolInvocationContext
+    ) -> GetEnvironmentDiagnosticsResponse:
+        doc = EnvironmentDoctor(db_path=self.db_path)
+        checks = doc.run_all_checks()
+        return GetEnvironmentDiagnosticsResponse(checks=checks)
+
+    def get_system_readiness(
+        self, req: GetSystemReadinessRequest, context: ToolInvocationContext
+    ) -> GetSystemReadinessResponse:
+        doc = EnvironmentDoctor(db_path=self.db_path)
+        readiness = doc.evaluate_readiness()
+        return GetSystemReadinessResponse(readiness=readiness)
+
+    def get_release_manifest(
+        self, req: GetReleaseManifestRequest, context: ToolInvocationContext
+    ) -> GetReleaseManifestResponse:
+        doc = EnvironmentDoctor(db_path=self.db_path)
+        manifest = generate_release_manifest(doctor=doc)
+        return GetReleaseManifestResponse(manifest=manifest)
+
+    def run_canonical_demonstration(
+        self, req: RunCanonicalDemonstrationRequest, context: ToolInvocationContext
+    ) -> RunCanonicalDemonstrationResponse:
+        self._ensure_provenance_init()
+        runner = CanonicalDemonstrationRunner(provenance_service=self.provenance_service)
+        result = runner.run_demonstration(
+            correlation_id=req.correlation_id,
+            governor_actor_id=req.governor_actor_id,
+            target_id=req.target_id,
+        )
+        return RunCanonicalDemonstrationResponse(result=result)
+
+
+
+
 
 
 

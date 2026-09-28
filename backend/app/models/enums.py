@@ -209,7 +209,43 @@ class ApplicationType(str, Enum):
     DEMO_SHOP = "demo_shop"
 
 
+# Slice 8C — Context-Aware Autonomous Dogfooding Enums
+
+class CausalLayer(str, Enum):
+    """Prompt Lab taxonomy for AI failure causal classification."""
+    PROMPT_DEFECT = "PROMPT_DEFECT"
+    MODEL_BEHAVIOR = "MODEL_BEHAVIOR"
+    RETRIEVAL_FAILURE = "RETRIEVAL_FAILURE"
+    CONTEXT_FAILURE = "CONTEXT_FAILURE"
+    TOOL_FAILURE = "TOOL_FAILURE"
+    APPLICATION_LOGIC = "APPLICATION_LOGIC"
+    PARSER_FAILURE = "PARSER_FAILURE"
+    SCHEMA_FAILURE = "SCHEMA_FAILURE"
+    DATA_FAILURE = "DATA_FAILURE"
+    EVALUATOR_FAILURE = "EVALUATOR_FAILURE"
+    UNKNOWN = "UNKNOWN"
 
 
+class RetestTransition(str, Enum):
+    """Tracks pass/fail transitions between baseline and candidate runs."""
+    NEW_PASS = "NEW_PASS"
+    NEW_FAILURE = "NEW_FAILURE"
+    FIXED_FAILURE = "FIXED_FAILURE"
+    REGRESSION = "REGRESSION"
+    UNCHANGED = "UNCHANGED"
+
+
+class ContractStatus(str, Enum):
+    """Behavioral contract evaluation outcomes."""
+    CONTRACT_PRESERVED = "CONTRACT_PRESERVED"
+    CONTRACT_VIOLATED = "CONTRACT_VIOLATED"
+    CONTRACT_UNCERTAIN = "CONTRACT_UNCERTAIN"
+
+
+class ContextVerificationStatus(str, Enum):
+    """Runtime context verification results."""
+    VERIFIED = "VERIFIED"
+    MISMATCH = "MISMATCH"
+    UNAVAILABLE = "UNAVAILABLE"
 
 

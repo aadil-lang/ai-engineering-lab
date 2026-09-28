@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Navbar } from '@/components/Navbar';
+import Link from 'next/link';
+import { AppShell } from '@/components/AppShell';
 import { MetricCards } from '@/components/MetricCards';
 import { RunHistoryTable } from '@/components/RunHistoryTable';
 import { QuickLaunchModal } from '@/components/QuickLaunchModal';
 import { TestRun, TestMode, RunStatus } from '@/types';
-import { api } from '@/lib/api';
+import { api, governanceApi } from '@/lib/api';
 import { 
   Play, 
   RefreshCw, 
@@ -16,7 +17,11 @@ import {
   Cpu, 
   Activity,
   Layers,
-  Sparkles
+  Sparkles,
+  ArrowRight,
+  UserCheck,
+  CheckCircle2,
+  AlertTriangle
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -27,16 +32,21 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedModeFilter, setSelectedModeFilter] = useState<string>('');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('');
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
 
   const loadRuns = async () => {
     setIsLoading(true);
     try {
-      const data = await api.getRuns({
-        test_mode: selectedModeFilter || undefined,
-        status: selectedStatusFilter || undefined,
-      });
+      const [data, approvalReqs] = await Promise.all([
+        api.getRuns({
+          test_mode: selectedModeFilter || undefined,
+          status: selectedStatusFilter || undefined,
+        }),
+        governanceApi.getApprovalRequests('PENDING').catch(() => []),
+      ]);
       setRuns(data.items || []);
       setTotalCount(data.total || 0);
+      setPendingApprovalsCount(approvalReqs.length || 0);
     } catch (err) {
       console.error('Failed to load runs:', err);
     } finally {
@@ -60,10 +70,39 @@ export default function DashboardPage() {
   });
 
   return (
-    <div className="flex-1 flex flex-col">
-      <Navbar onOpenLaunchModal={() => setIsModalOpen(true)} />
+    <AppShell onOpenLaunchModal={() => setIsModalOpen(true)}>
+      <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Active Application Target Status Banner */}
+        <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 font-mono text-xs">
+          <div className="flex items-center space-x-3">
+            <div className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+            <div>
+              <span className="text-slate-400 uppercase text-[10px] block">Current Verification Target</span>
+              <span className="text-white font-bold text-sm">Question Generator (Local Real App)</span>
+            </div>
+            <span className="text-slate-500 hidden sm:inline">|</span>
+            <span className="text-slate-400 hidden sm:inline">Target ID: <code className="text-cyan-300">real_question_generator_local</code></span>
+          </div>
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+          <div className="flex items-center space-x-3">
+            {pendingApprovalsCount > 0 && (
+              <Link
+                href="/governance"
+                className="px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/30 hover:bg-amber-500/20 transition-all flex items-center space-x-1.5 font-semibold"
+              >
+                <UserCheck className="h-3.5 w-3.5 text-amber-400" />
+                <span>{pendingApprovalsCount} Pending Governance Review</span>
+              </Link>
+            )}
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all flex items-center space-x-1.5"
+            >
+              <Play className="h-3.5 w-3.5 fill-white" />
+              <span>Test My App</span>
+            </button>
+          </div>
+        </div>
         {/* Top Hero / Mission Control Banner */}
         <div className="relative overflow-hidden rounded-2xl border border-indigo-500/20 bg-gradient-to-r from-slate-950 via-[#0d162a] to-slate-950 p-6 sm:p-8 shadow-2xl">
           <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
@@ -167,7 +206,7 @@ export default function DashboardPage() {
           {/* History Table */}
           <RunHistoryTable runs={filteredRuns} isLoading={isLoading} />
         </section>
-      </main>
+      </div>
 
       {/* Quick Launch Modal */}
       <QuickLaunchModal
@@ -175,6 +214,6 @@ export default function DashboardPage() {
         onClose={() => setIsModalOpen(false)}
         onRunCreated={() => loadRuns()}
       />
-    </div>
+    </AppShell>
   );
 }

@@ -15,10 +15,20 @@ from backend.app.api.v1 import (
     github,
     prompt_lab,
     governance,
+    live_testing,
+    memory,
+    change_impact,
+    provenance,
+    system,
 )
 
 api_router = APIRouter()
 
+api_router.include_router(system.router, prefix="/system", tags=["System Diagnostics, Readiness & Demonstration"])
+api_router.include_router(provenance.router, prefix="/provenance", tags=["Unified Engineering Provenance & Change Trace"])
+api_router.include_router(change_impact.router, tags=["Change-Aware Impact Analysis & Adaptive Regression"])
+api_router.include_router(memory.router, prefix="/memory", tags=["Application-Aware Engineering Memory"])
+api_router.include_router(live_testing.router, prefix="/live", tags=["Live Autonomous Testing Console"])
 api_router.include_router(runs.router, prefix="/runs", tags=["Test Runs"])
 api_router.include_router(campaigns.router, prefix="/campaigns", tags=["QA Campaigns"])
 api_router.include_router(diagnoses.router, prefix="/diagnoses", tags=["Failure Diagnoses"])

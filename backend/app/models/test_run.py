@@ -30,7 +30,28 @@ class TestRun(BaseModel):
     feature_vector_version: str = "v1.0-temporal"
     campaign_id: str | None = None
     campaign_type: CampaignType | None = None
+    metadata: dict = Field(default_factory=dict)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+    # Slice 8C — AI Application Context Binding
+    # References to canonical context records (not duplicated configuration)
+    evaluation_context_id: str | None = None
+    context_hash: str | None = None
+    ai_feature_id: str | None = None
+    prompt_id: str | None = None
+    prompt_version: int | None = None
+    model: str | None = None
+    model_version: str | None = None
+    git_commit_sha: str | None = None
+    behavioral_contract_ids: list[str] = Field(default_factory=list)
+    evaluation_case_id: str | None = None
+
+    # Provenance chain references
+    diagnosis_id: str | None = None
+    recommendation_id: str | None = None
+    approval_request_id: str | None = None
+    authorization_id: str | None = None
+    parent_run_id: str | None = None
 
 class TestRunCreate(BaseModel):
     application_id: str
@@ -48,6 +69,12 @@ class TestRunCreate(BaseModel):
     action_delay_ms: int = 150 # Delay per step to simulate real network/browser work
     campaign_id: str | None = None
     campaign_type: CampaignType | None = None
+
+    # Slice 8C — Context-aware run creation
+    evaluation_context_id: str | None = None
+    ai_feature_id: str | None = None
+    parent_run_id: str | None = None
+
 
 
 

@@ -188,6 +188,23 @@ export interface TestRun {
   metrics_summary: Record<string, number>;
   logs: string[];
   created_at: string;
+
+  // Slice 8C — AI Context Binding & Provenance
+  evaluation_context_id?: string | null;
+  context_hash?: string | null;
+  ai_feature_id?: string | null;
+  prompt_id?: string | null;
+  prompt_version?: number | null;
+  model?: string | null;
+  model_version?: string | null;
+  git_commit_sha?: string | null;
+  behavioral_contract_ids?: string[];
+  evaluation_case_id?: string | null;
+  diagnosis_id?: string | null;
+  recommendation_id?: string | null;
+  approval_request_id?: string | null;
+  authorization_id?: string | null;
+  parent_run_id?: string | null;
 }
 
 export interface TestRunCreate {
@@ -204,6 +221,11 @@ export interface TestRunCreate {
   natural_language_goal?: string | null;
   max_agent_steps?: number;
   action_delay_ms?: number;
+
+  // Slice 8C — Context-aware run creation
+  evaluation_context_id?: string | null;
+  ai_feature_id?: string | null;
+  parent_run_id?: string | null;
 }
 
 export interface DimensionScore {
@@ -1656,6 +1678,628 @@ export interface GovernanceAuditRecordModel {
   authorization_id?: string | null;
   content_hash: string;
   details: Record<string, any>;
+}
+
+export interface CanApplyResultModel {
+  decision: 'AUTHORIZED' | 'BLOCKED';
+  is_authorized: boolean;
+  reasons: string[];
+  authorization_id?: string | null;
+  blockers: string[];
+}
+
+// ============================================================================
+// Application Context Models (Slice 7.7.1)
+// ============================================================================
+export type EpistemicStatus = 'OBSERVED' | 'INFERRED' | 'DECLARED' | 'HYPOTHESIS';
+export type EvaluationMode = 'PROMPT_LEVEL' | 'APPLICATION_LEVEL';
+export type ContractEvaluationStatus = 'CONTRACT_PRESERVED' | 'CONTRACT_VIOLATED' | 'CONTRACT_UNCERTAIN';
+
+export interface ContextProvenanceModel {
+  component: string;
+  source: string;
+  source_id: string;
+  source_version?: string | null;
+  epistemic_status: EpistemicStatus;
+  observed_at: string;
+  hash?: string | null;
+}
+
+export interface AIApplicationManifestModel {
+  application_id: string;
+  feature_id: string;
+  application_name: string;
+  application_version: string;
+  git_repository?: string | null;
+  git_commit_sha?: string | null;
+  prompt_id: string;
+  prompt_version: number;
+  model: string;
+  model_version?: string | null;
+  generation_parameters: Record<string, any>;
+  input_schema?: Record<string, any> | null;
+  output_schema?: Record<string, any> | null;
+  retrieval_configuration?: Record<string, any> | null;
+  tool_configuration?: Record<string, any> | null;
+  parser_configuration?: Record<string, any> | null;
+  application_configuration: Record<string, any>;
+  behavioral_contract_ids: string[];
+  evaluation_suite_ids: string[];
+  environment: string;
+  created_at: string;
+}
+
+export interface EvaluationContextModel {
+  context_id: string;
+  application_id: string;
+  feature_id: string;
+  application_version: string;
+  git_commit_sha?: string | null;
+  prompt_id: string;
+  prompt_version: number;
+  model: string;
+  model_version?: string | null;
+  generation_parameters: Record<string, any>;
+  input_schema?: Record<string, any> | null;
+  output_schema?: Record<string, any> | null;
+  retrieval_configuration?: Record<string, any> | null;
+  tool_configuration?: Record<string, any> | null;
+  parser_configuration?: Record<string, any> | null;
+  application_configuration: Record<string, any>;
+  behavioral_contract_ids: string[];
+  evaluation_suite_ids: string[];
+  provenance: ContextProvenanceModel[];
+  is_frozen: boolean;
+  created_at: string;
+  context_hash: string;
+}
+
+export interface ContextDifferenceModel {
+  context_id_a: string;
+  context_id_b: string;
+  dimensions: Record<string, { baseline: any; candidate: any; changed: boolean }>;
+  changed_dimensions: string[];
+  is_multi_variable_change: boolean;
+  can_attribute_to_prompt: boolean;
+  attribution_note: string;
+}
+
+
+// Slice 8C — Context-Aware Autonomous Dogfooding Types
+
+export type CausalLayer =
+  | 'PROMPT_DEFECT'
+  | 'MODEL_BEHAVIOR'
+  | 'RETRIEVAL_FAILURE'
+  | 'CONTEXT_FAILURE'
+  | 'TOOL_FAILURE'
+  | 'APPLICATION_LOGIC'
+  | 'PARSER_FAILURE'
+  | 'SCHEMA_FAILURE'
+  | 'DATA_FAILURE'
+  | 'EVALUATOR_FAILURE'
+  | 'UNKNOWN';
+
+export type RetestTransition =
+  | 'NEW_PASS'
+  | 'NEW_FAILURE'
+  | 'FIXED_FAILURE'
+  | 'REGRESSION'
+  | 'UNCHANGED';
+
+export type ContractStatus =
+  | 'CONTRACT_PRESERVED'
+  | 'CONTRACT_VIOLATED'
+  | 'CONTRACT_UNCERTAIN';
+
+export type ContextVerificationStatus =
+  | 'VERIFIED'
+  | 'MISMATCH'
+  | 'UNAVAILABLE';
+
+
+export interface ComponentVerificationModel {
+  component: string;
+  status: ContextVerificationStatus;
+  epistemic_status: EpistemicStatus;
+  declared_value?: string | null;
+  observed_value?: string | null;
+  mismatch_detail?: string | null;
+}
+
+export interface DogfoodingRunContextModel {
+  context_binding_id: string;
+  run_id: string;
+  evaluation_context_id: string;
+  context_hash: string;
+  application_id: string;
+  feature_id: string;
+  git_commit_sha?: string | null;
+  prompt_id: string;
+  prompt_version: number;
+  model: string;
+  model_version?: string | null;
+  retrieval_configuration_hash?: string | null;
+  tool_configuration_hash?: string | null;
+  parser_configuration_hash?: string | null;
+  behavioral_contract_ids: string[];
+  evaluation_case_id?: string | null;
+  component_verifications: ComponentVerificationModel[];
+  ai_feature_detected: boolean;
+  created_at: string;
+}
+
+export interface CausalClassificationModel {
+  classification_id: string;
+  diagnosis_id: string;
+  run_id: string;
+  primary_layer: CausalLayer;
+  primary_evidence_refs: string[];
+  primary_epistemic_status: EpistemicStatus;
+  secondary_layers: CausalLayer[];
+  secondary_evidence_refs: string[];
+  rationale: string;
+  created_at: string;
+}
+
+export interface RetestComparisonModel {
+  dimension: string;
+  baseline_value?: string | null;
+  candidate_value?: string | null;
+  status: 'SAME' | 'CHANGED';
+}
+
+export interface RetestResultModel {
+  retest_id: string;
+  baseline_run_id: string;
+  candidate_run_id: string;
+  baseline_context_id: string;
+  candidate_context_id: string;
+  transitions: Record<string, RetestTransition>;
+  contract_evaluations: Record<string, ContractStatus>;
+  comparisons: RetestComparisonModel[];
+  changed_dimensions: string[];
+  is_multi_variable_change: boolean;
+  is_independently_verified: boolean;
+  has_regressions: boolean;
+  created_at: string;
+}
+
+export interface ProvenanceTimelineEntry {
+  step: string;
+  label: string;
+  status: 'PASS' | 'FAIL' | 'PENDING' | 'INFO';
+  detail?: string;
+  timestamp?: string;
+}
+
+// ============================================================================
+// Slice 8D — Live Autonomous Application Testing Console
+// ============================================================================
+
+export type LiveSessionStatus =
+  | 'CREATED'
+  | 'STARTING'
+  | 'RUNNING'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'CANCELLED';
+
+export type LiveEventType =
+  | 'SESSION_CREATED'
+  | 'SESSION_STARTED'
+  | 'NAVIGATION_STARTED'
+  | 'NAVIGATION_COMPLETED'
+  | 'DOM_OBSERVED'
+  | 'ACTION_STARTED'
+  | 'ACTION_COMPLETED'
+  | 'ACTION_FAILED'
+  | 'SCREENSHOT_CAPTURED'
+  | 'CONSOLE_EVENT'
+  | 'PAGE_ERROR'
+  | 'NETWORK_REQUEST_STARTED'
+  | 'NETWORK_REQUEST_COMPLETED'
+  | 'NETWORK_REQUEST_FAILED'
+  | 'PERFORMANCE_UPDATE'
+  | 'ASSERTION_STARTED'
+  | 'ASSERTION_PASSED'
+  | 'ASSERTION_FAILED'
+  | 'EVIDENCE_CAPTURED'
+  | 'DETERMINISTIC_EVALUATION_STARTED'
+  | 'DETERMINISTIC_EVALUATION_COMPLETED'
+  | 'DIAGNOSIS_STARTED'
+  | 'DIAGNOSIS_COMPLETED'
+  | 'REMEDIATION_PROPOSED'
+  | 'GOVERNANCE_REQUIRED'
+  | 'STRATEGY_PLANNED'
+  | 'STRATEGY_ADAPTED'
+  | 'RETEST_STARTED'
+  | 'RETEST_COMPLETED'
+  | 'MEMORY_RETRIEVAL_STARTED'
+  | 'MEMORY_RETRIEVAL_COMPLETED'
+  | 'MEMORY_CANDIDATE_CREATED'
+  | 'MEMORY_PROMOTED'
+  | 'MEMORY_INVALIDATED'
+  | 'MEMORY_CONTRADICTION_DETECTED'
+  | 'SESSION_COMPLETED'
+  | 'SESSION_FAILED'
+  | 'SESSION_CANCELLED';
+
+// Slice 8E — Engineering Memory Models
+export type MemoryType =
+  | 'APPLICATION_FACT'
+  | 'WORKFLOW'
+  | 'WORKFLOW_STATE'
+  | 'WORKFLOW_TRANSITION'
+  | 'BEHAVIORAL_OBSERVATION'
+  | 'EDGE_CASE'
+  | 'FAILURE_HISTORY'
+  | 'REGRESSION_HISTORY'
+  | 'CONTRACT_REFERENCE'
+  | 'AI_BEHAVIOR'
+  | 'CHANGE_IMPACT'
+  | 'REMEDIATION_HISTORY'
+  | 'RELIABILITY_PATTERN'
+  | 'UNKNOWN_BEHAVIOR';
+
+export type MemoryStatus =
+  | 'OBSERVED'
+  | 'DECLARED'
+  | 'INFERRED'
+  | 'HISTORICAL'
+  | 'STALE'
+  | 'INVALIDATED'
+  | 'UNKNOWN';
+
+export type MemoryApplicability =
+  | 'APPLICABLE'
+  | 'PARTIALLY_APPLICABLE'
+  | 'STALE'
+  | 'INVALIDATED'
+  | 'UNKNOWN';
+
+export interface EngineeringMemoryModel {
+  memory_id: string;
+  application_id: string;
+  target_id?: string | null;
+  component_id?: string | null;
+  workflow_id?: string | null;
+  memory_type: MemoryType;
+  content: string;
+  status: MemoryStatus;
+  source_type: string;
+  source_run_id?: string | null;
+  source_evidence_ids: string[];
+  source_diagnosis_id?: string | null;
+  context_id?: string | null;
+  context_hash?: string | null;
+  git_commit?: string | null;
+  prompt_version?: string | null;
+  model_id?: string | null;
+  created_at: string;
+  updated_at: string;
+  last_verified_at?: string | null;
+  version: number;
+  confidence_metadata: Record<string, any>;
+  tags: string[];
+}
+
+export interface MemorySearchResultModel {
+  memory: EngineeringMemoryModel;
+  score: number;
+  semantic_similarity: number;
+  applicability: MemoryApplicability;
+  ranking_factors: Record<string, number>;
+  conflict_notes?: string | null;
+}
+
+export interface LiveEventModel {
+  event_id: string;
+  session_id: string;
+  run_id: string;
+  sequence_number: number;
+  event_type: LiveEventType;
+  timestamp: string;
+  payload: Record<string, any>;
+}
+
+export interface LiveDogfoodingSessionModel {
+  session_id: string;
+  run_id: string;
+  target_id: string;
+  application_id: string;
+  test_case_id?: string | null;
+  runner_type: RunnerType | string;
+  execution_source: ExecutionSource | string;
+  status: LiveSessionStatus;
+  created_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+  current_step: number;
+  total_steps: number;
+  current_action?: string | null;
+  latest_screenshot_id?: string | null;
+  latest_event_sequence: number;
+  subscriber_count: number;
+}
+
+export interface PrioritizedWorkflowModel {
+  workflow_id: string;
+  name: string;
+  description: string;
+  archetype_affinity: string;
+  priority: number;
+  target_selectors: string[];
+  expected_state_change: string;
+  associated_contract_ids: string[];
+  status: 'PENDING' | 'IN_PROGRESS' | 'VERIFIED' | 'BLOCKED' | 'ABANDONED';
+  attempts: number;
+  verification_notes?: string | null;
+}
+
+export interface StrategyAdaptationModel {
+  adaptation_id: string;
+  step_number: number;
+  trigger: string;
+  adaptation_type: string;
+  reason: string;
+  previous_active_workflow?: string | null;
+  new_active_workflow?: string | null;
+  changes: Record<string, any>;
+  timestamp: string;
+}
+
+export interface TestingStrategyModel {
+  strategy_id: string;
+  run_id: string;
+  target_id: string;
+  application_id?: string | null;
+  application_archetype: string;
+  strategy_mode: string;
+  goal: string;
+  behavioral_contract_count: number;
+  total_workflows: number;
+  active_workflow?: {
+    workflow_id: string;
+    name: string;
+    status: string;
+    priority: number;
+  } | null;
+  risk_areas: string[];
+  adaptations_count: number;
+  updated_at: string;
+}
+
+// ==========================================
+// Slice 8K — Change Impact & Adaptive Regression
+// ==========================================
+
+export type ChangeType =
+  | 'CODE'
+  | 'PROMPT'
+  | 'MODEL'
+  | 'MODEL_CONFIGURATION'
+  | 'RETRIEVAL'
+  | 'TOOL'
+  | 'PARSER'
+  | 'BEHAVIORAL_CONTRACT'
+  | 'UI'
+  | 'API_CONTRACT'
+  | 'CONFIGURATION'
+  | 'DEPENDENCY'
+  | 'DATABASE_SCHEMA'
+  | 'DEPLOYMENT'
+  | 'DOCUMENTATION'
+  | 'UNKNOWN';
+
+export type RegressionScope = 'DEEP' | 'TARGETED' | 'SMOKE';
+
+export type ComparisonClassification =
+  | 'NO_REGRESSION'
+  | 'EXPECTED_CHANGE'
+  | 'REGRESSION'
+  | 'IMPROVEMENT'
+  | 'NEW_BEHAVIOR'
+  | 'UNRELATED_CHANGE'
+  | 'UNKNOWN'
+  | 'INSUFFICIENT_EVIDENCE';
+
+export interface ChangeSetModel {
+  change_set_id: string;
+  change_source: string;
+  change_types: ChangeType[];
+  repository?: string | null;
+  base_commit: string;
+  candidate_commit: string;
+  changed_files: string[];
+  changed_symbols: string[];
+  changed_components: string[];
+  changed_workflows: string[];
+  changed_contracts: string[];
+  changed_prompts: string[];
+  changed_models: string[];
+  changed_retrieval: string[];
+  changed_tools: string[];
+  changed_configuration: Record<string, any>;
+  created_at: string;
+}
+
+export interface ImpactRelationshipModel {
+  source_id: string;
+  target_id: string;
+  relationship_type: string;
+  description: string;
+  confidence_factors: string[];
+}
+
+export interface AffectedComponentModel {
+  component_id: string;
+  name: string;
+  component_type: string;
+  impact_level: string;
+  relationship: string;
+  reason: string;
+  evidence_ids: string[];
+  memory_ids: string[];
+  confidence_factors: string[];
+}
+
+export interface AffectedWorkflowModel {
+  workflow_id: string;
+  name: string;
+  impact_level: string;
+  reason: string;
+  historical_failures: string[];
+  reliability_history: Record<string, any>;
+  associated_contracts: string[];
+}
+
+export interface ChangeImpactModel {
+  change_set_id: string;
+  impact_relationships: ImpactRelationshipModel[];
+  affected_components: AffectedComponentModel[];
+  affected_workflows: AffectedWorkflowModel[];
+  affected_contracts: string[];
+  ai_behavior_affected: boolean;
+  unknown_impact: boolean;
+  summary: string;
+  created_at: string;
+}
+
+export interface RegressionPlanItemModel {
+  item_id: string;
+  workflow_id: string;
+  name: string;
+  test_case_id?: string | null;
+  scope: RegressionScope;
+  reasons: string[];
+  target_component_ids: string[];
+  relevant_memory_ids: string[];
+  relevant_contracts: string[];
+  priority: number;
+}
+
+export interface RegressionScopeExpansionModel {
+  expansion_id: string;
+  plan_id: string;
+  trigger: string;
+  evidence_ids: string[];
+  previous_scope: Record<string, number>;
+  new_scope: Record<string, number>;
+  added_items: RegressionPlanItemModel[];
+  reason: string;
+  timestamp: string;
+}
+
+export interface AdaptiveRegressionPlanModel {
+  plan_id: string;
+  change_set_id: string;
+  target_id: string;
+  application_id?: string | null;
+  created_at: string;
+  base_commit: string;
+  candidate_commit: string;
+  scope_summary: {
+    DEEP: number;
+    TARGETED: number;
+    SMOKE: number;
+  };
+  plan_status: string;
+  reasoning_summary: string;
+  impact_summary: string;
+  memory_summary: string;
+  reliability_summary: string;
+  items: RegressionPlanItemModel[];
+  expansions: RegressionScopeExpansionModel[];
+  budget: Record<string, any>;
+  stale: boolean;
+}
+
+export interface BehavioralComparisonModel {
+  comparison_id: string;
+  plan_id: string;
+  change_set_id: string;
+  baseline_run_id: string;
+  candidate_run_id: string;
+  classification: ComparisonClassification;
+  is_multi_variable_change: boolean;
+  can_attribute_cause: boolean;
+  attribution_note: string;
+  contract_violations: string[];
+  broken_assertions: string[];
+  evidence_ids: string[];
+  summary: string;
+  details: Record<string, any>;
+  created_at: string;
+}
+
+export interface RegressionFindingModel {
+  finding_id: string;
+  plan_id: string;
+  comparison_id: string;
+  severity: string;
+  title: string;
+  description: string;
+  affected_workflows: string[];
+  affected_contracts: string[];
+  evidence_ids: string[];
+  recommended_action: string;
+  requires_human_governance: boolean;
+  created_at: string;
+}
+
+// ==========================================
+// Slice 8L — Unified Engineering Provenance
+// ==========================================
+
+export type ActorType = 'HUMAN' | 'AI_AGENT' | 'SYSTEM' | 'CI' | 'UNKNOWN';
+
+export interface EngineeringLifecycleEventModel {
+  event_id: string;
+  sequence_number: number;
+  event_type: string;
+  timestamp: string;
+  actor_type: ActorType;
+  actor_id: string;
+  correlation_id: string;
+  parent_event_id?: string | null;
+  application_id?: string | null;
+  target_id?: string | null;
+  run_id?: string | null;
+  test_case_id?: string | null;
+  change_set_id?: string | null;
+  plan_id?: string | null;
+  memory_id?: string | null;
+  evidence_id?: string | null;
+  diagnosis_id?: string | null;
+  remediation_id?: string | null;
+  governance_id?: string | null;
+  authorization_id?: string | null;
+  git_commit?: string | null;
+  pull_request_id?: string | null;
+  ci_run_id?: string | null;
+  context_id?: string | null;
+  metadata: Record<string, any>;
+  previous_event_hash: string;
+  event_hash: string;
+}
+
+export interface ProvenanceChainVerificationResultModel {
+  is_valid: boolean;
+  total_events: number;
+  verified_events: number;
+  broken_event_id?: string | null;
+  violation_type?: string | null;
+  details: string;
+}
+
+export interface ProvenanceTraceModel {
+  correlation_id: string;
+  events: EngineeringLifecycleEventModel[];
+  stages_present: string[];
+  is_complete_lifecycle: boolean;
+  total_events: number;
+  summary: string;
 }
 
 

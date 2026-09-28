@@ -1,0 +1,10 @@
+{
+  "category": "NETWORK_ERROR",
+  "title": "Playwright Execution Failed: NETWORK_ERROR",
+  "message": "Navigation failed: Page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n  - navigating to \"http://127.0.0.1:3000/\", waiting until \"domcontentloaded\"\n",
+  "stack_trace": "Traceback (most recent call last):\n  File \"C:\\Users\\HP\\.gemini\\antigravity-ide\\scratch\\New project\\backend\\app\\execution\\playwright_runner.py\", line 158, in execute\n    await self._exec_workflow_question_generator(run, page, target_url, captured_console_logs, captured_network_events, simulate_failure=True)\n  File \"C:\\Users\\HP\\.gemini\\antigravity-ide\\scratch\\New project\\backend\\app\\execution\\playwright_runner.py\", line 1257, in _exec_workflow_question_generator\n    raise PlaywrightError(nav_action.error_message or \"Navigation to Question Generator failed\")\nplaywright._impl._errors.Error: Navigation failed: Page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:3000/\nCall log:\n  - navigating to \"http://127.0.0.1:3000/\", waiting until \"domcontentloaded\"\n\n",
+  "failed_action": "NAVIGATE",
+  "selector": "http://127.0.0.1:3000/base-generate",
+  "captured_console_count": 0,
+  "captured_network_count": 4
+}

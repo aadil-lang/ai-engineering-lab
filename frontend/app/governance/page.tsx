@@ -21,12 +21,14 @@ import {
   Hash,
 } from 'lucide-react';
 import { governanceApi } from '@/lib/api';
+import { AppShell } from '@/components/AppShell';
 import {
   ApprovalRequestModel,
   GovernanceRecommendationModel,
   ChangeAuthorizationModel,
   GovernanceAuditRecordModel,
   EvidencePackageModel,
+  CanApplyResultModel,
 } from '@/types';
 
 export default function GovernancePage() {
@@ -54,18 +56,36 @@ export default function GovernancePage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
+  // CanApply Gate Testing State (Slice 8A)
+  const [selectedAuthForGate, setSelectedAuthForGate] = useState<ChangeAuthorizationModel | null>(null);
+  const [gateTargetVersion, setGateTargetVersion] = useState<string>('');
+  const [gateTargetCommit, setGateTargetCommit] = useState<string>('');
+  const [gateEvidencePkgId, setGateEvidencePkgId] = useState<string>('');
+  const [canApplyEvaluating, setCanApplyEvaluating] = useState<boolean>(false);
+  const [canApplyResult, setCanApplyResult] = useState<CanApplyResultModel | null>(null);
+  const [consumeLoading, setConsumeLoading] = useState<boolean>(false);
+
   const fetchData = async () => {
     setLoading(true);
     setActionError(null);
     try {
-      const [reqs, recs, audits] = await Promise.all([
+      const [reqs, recs, audits, auths] = await Promise.all([
         governanceApi.getApprovalRequests(),
         governanceApi.getRecommendations(),
         governanceApi.getAudit(),
+        governanceApi.getAuthorizations().catch(() => []),
       ]);
       setApprovalRequests(reqs || []);
       setRecommendations(recs || []);
       setAuditRecords(audits || []);
+      setAuthorizations(auths || []);
+
+      if (auths && auths.length > 0 && !selectedAuthForGate) {
+        setSelectedAuthForGate(auths[0]);
+        setGateTargetVersion(auths[0].authorized_version || '1.0.0');
+        setGateTargetCommit(auths[0].authorized_commit_sha || '');
+        setGateEvidencePkgId(auths[0].evidence_package_id || '');
+      }
 
       if (reqs && reqs.length > 0 && !selectedRequest) {
         handleSelectRequest(reqs[0]);
@@ -167,14 +187,48 @@ export default function GovernancePage() {
     }
   };
 
+  const handleEvaluateCanApply = async () => {
+    if (!selectedAuthForGate) return;
+    setCanApplyEvaluating(true);
+    setCanApplyResult(null);
+    try {
+      const res = await governanceApi.canApply(selectedAuthForGate.authorization_id, {
+        change_type: selectedAuthForGate.authorized_change_type,
+        subject_id: selectedAuthForGate.authorized_subject,
+        target_version: gateTargetVersion || undefined,
+        target_commit_sha: gateTargetCommit || undefined,
+        current_evidence_package_id: gateEvidencePkgId || undefined,
+        requested_scope: selectedAuthForGate.authorization_scope || 'PROMOTE',
+      });
+      setCanApplyResult(res);
+    } catch (err: any) {
+      setActionError(err.message || 'can_apply evaluation call failed.');
+    } finally {
+      setCanApplyEvaluating(false);
+    }
+  };
+
+  const handleConsumeAuthorization = async (authId: string) => {
+    setConsumeLoading(true);
+    try {
+      await governanceApi.consumeAuthorization(authId, decisionMakerId);
+      setActionSuccess(`Authorization ${authId} successfully consumed (marked USED).`);
+      fetchData();
+    } catch (err: any) {
+      setActionError(err.message || 'Failed to consume authorization.');
+    } finally {
+      setConsumeLoading(false);
+    }
+  };
+
   const pendingCount = approvalRequests.filter((r) => r.status === 'PENDING').length;
   const approvedCount = approvalRequests.filter((r) => r.status === 'APPROVED').length;
   const rejectedCount = approvalRequests.filter((r) => r.status === 'REJECTED').length;
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 p-6 md:p-8">
-      {/* Header */}
-      <div className="max-w-7xl mx-auto space-y-6">
+    <AppShell>
+      <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+        {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
           <div>
             <div className="flex items-center space-x-3 mb-2">
@@ -264,6 +318,17 @@ export default function GovernancePage() {
           >
             <Sparkles className="h-4 w-4" />
             <span>AI Recommendations</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('authorizations')}
+            className={`px-4 py-2.5 text-xs font-semibold rounded-t-lg transition-colors border-b-2 flex items-center space-x-2 ${
+              activeTab === 'authorizations'
+                ? 'border-emerald-400 text-emerald-300 bg-slate-900/80'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <ShieldCheck className="h-4 w-4" />
+            <span>Authorizations & Gate ({authorizations.length})</span>
           </button>
           <button
             onClick={() => setActiveTab('audit')}
@@ -653,7 +718,214 @@ export default function GovernancePage() {
             </div>
           </div>
         )}
+
+        {/* TAB 4: AUTHORIZATIONS & CAN_APPLY GATE TESTER */}
+        {activeTab === 'authorizations' && (
+          <div className="space-y-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-2">
+              <div>
+                <h2 className="text-xs uppercase tracking-wider font-semibold text-slate-400 font-mono">
+                  Issued Change Authorizations ({authorizations.length})
+                </h2>
+                <p className="text-xs text-slate-500 font-mono mt-0.5">
+                  Cryptographically bound to target version, Git commit SHA, and verified evidence package hash.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Left Column: List of Authorizations */}
+              <div className="lg:col-span-5 space-y-3">
+                {authorizations.length === 0 ? (
+                  <div className="p-8 text-center rounded-xl bg-slate-900/40 border border-slate-800 text-slate-400 font-mono text-xs">
+                    No active change authorizations issued yet. Approve a pending change to issue an authorization.
+                  </div>
+                ) : (
+                  authorizations.map((auth) => {
+                    const isSelected = selectedAuthForGate?.authorization_id === auth.authorization_id;
+                    return (
+                      <div
+                        key={auth.authorization_id}
+                        onClick={() => {
+                          setSelectedAuthForGate(auth);
+                          setGateTargetVersion(auth.authorized_version || '');
+                          setGateTargetCommit(auth.authorized_commit_sha || '');
+                          setGateEvidencePkgId(auth.evidence_package_id || '');
+                          setCanApplyResult(null);
+                        }}
+                        className={`p-4 rounded-xl border cursor-pointer transition-all font-mono text-xs ${
+                          isSelected
+                            ? 'bg-slate-900 border-emerald-500/60 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
+                            : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-bold text-emerald-400">{auth.authorization_id}</span>
+                          <span
+                            className={`text-[9px] uppercase px-2 py-0.5 rounded font-bold ${
+                              auth.status === 'ACTIVE'
+                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                                : auth.status === 'USED'
+                                ? 'bg-slate-800 text-slate-400'
+                                : 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
+                            }`}
+                          >
+                            {auth.status}
+                          </span>
+                        </div>
+                        <div className="text-white font-semibold">{auth.authorized_subject}</div>
+                        <div className="text-[11px] text-slate-400 mt-1">
+                          Scope: {auth.authorization_scope} · Version: v{auth.authorized_version || '1.0.0'}
+                        </div>
+                        <div className="text-[10px] text-slate-500 break-all mt-1">
+                          SHA: {auth.evidence_package_hash.slice(0, 24)}...
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Right Column: Interactive Gate Tester */}
+              <div className="lg:col-span-7">
+                {selectedAuthForGate ? (
+                  <div className="p-6 rounded-xl bg-slate-900/70 border border-slate-800 space-y-6 font-mono">
+                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-emerald-400">
+                          Deterministic Enforcement Gate
+                        </span>
+                        <h3 className="text-base font-bold text-white mt-0.5">
+                          can_apply() Gate Evaluation
+                        </h3>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-slate-500 block">STATUS</span>
+                        <span className="text-xs font-bold text-white">{selectedAuthForGate.status}</span>
+                      </div>
+                    </div>
+
+                    {/* Target Inputs for Gate Evaluation */}
+                    <div className="space-y-4 text-xs">
+                      <div>
+                        <label className="block text-slate-400 text-[11px] mb-1 font-semibold">
+                          Target Version (Must match authorized v{selectedAuthForGate.authorized_version || 'N/A'})
+                        </label>
+                        <input
+                          type="text"
+                          value={gateTargetVersion}
+                          onChange={(e) => setGateTargetVersion(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                          placeholder="e.g. 1.0.0 or 1.1.0-unauthorized"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-400 text-[11px] mb-1 font-semibold">
+                          Target Git Commit SHA (Must match if bound)
+                        </label>
+                        <input
+                          type="text"
+                          value={gateTargetCommit}
+                          onChange={(e) => setGateTargetCommit(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                          placeholder="e.g. a81f92d or wrong_sha"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-400 text-[11px] mb-1 font-semibold">
+                          Evidence Package ID
+                        </label>
+                        <input
+                          type="text"
+                          value={gateEvidencePkgId}
+                          onChange={(e) => setGateEvidencePkgId(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                          placeholder="e.g. pkg_sample_01"
+                        />
+                      </div>
+
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          onClick={handleEvaluateCanApply}
+                          disabled={canApplyEvaluating}
+                          className="flex-1 py-2.5 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center space-x-2"
+                        >
+                          <ShieldCheck className="h-4 w-4" />
+                          <span>{canApplyEvaluating ? 'Evaluating Gate...' : 'Evaluate can_apply() Gate'}</span>
+                        </button>
+
+                        {selectedAuthForGate.status === 'ACTIVE' && (
+                          <button
+                            onClick={() => handleConsumeAuthorization(selectedAuthForGate.authorization_id)}
+                            disabled={consumeLoading}
+                            className="py-2.5 px-4 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition-colors"
+                          >
+                            {consumeLoading ? 'Consuming...' : 'Consume (Apply Change)'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Gate Evaluation Result Banner */}
+                    {canApplyResult && (
+                      <div
+                        className={`p-4 rounded-xl border space-y-2 ${
+                          canApplyResult.decision === 'AUTHORIZED'
+                            ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-200'
+                            : 'bg-rose-950/20 border-rose-500/40 text-rose-200'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-sm flex items-center space-x-2">
+                            {canApplyResult.decision === 'AUTHORIZED' ? (
+                              <>
+                                <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                                <span>DECISION: AUTHORIZED (ALLOW)</span>
+                              </>
+                            ) : (
+                              <>
+                                <XCircle className="h-5 w-5 text-rose-400" />
+                                <span>DECISION: BLOCKED (DENY)</span>
+                              </>
+                            )}
+                          </span>
+                          <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-black/40">
+                            Deterministic Enforcement
+                          </span>
+                        </div>
+
+                        {canApplyResult.blockers && canApplyResult.blockers.length > 0 && (
+                          <div className="pt-2 border-t border-rose-500/20 space-y-1">
+                            <span className="text-[11px] font-bold text-rose-300">Enforcement Blockers:</span>
+                            {canApplyResult.blockers.map((b, idx) => (
+                              <div key={idx} className="text-xs text-rose-200 font-mono">
+                                • {b}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {canApplyResult.reasons && canApplyResult.reasons.length > 0 && (
+                          <div className="pt-1 text-xs text-slate-300">
+                            {canApplyResult.reasons.join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-12 text-center rounded-xl bg-slate-900/40 border border-slate-800 text-slate-400 text-xs font-mono">
+                    Select a change authorization to evaluate can_apply() or test artifact mismatch.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </AppShell>
   );
 }
+

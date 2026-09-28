@@ -18,7 +18,10 @@ dependencies = [
     "mcp>=2.2.0",
 ]
 
+[tool.pyright]
+extraPaths = ["..", "."]
+
 [tool.pytest.ini_options]
-testpaths = ["backend/tests"]
+testpaths = ["tests"]
 python_files = ["test_*.py"]
-python_classes = ["*TestSuite", "*Tests"]
+python_classes = ["Test*", "*TestSuite", "*Tests"]

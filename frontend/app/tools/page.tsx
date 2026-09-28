@@ -17,6 +17,7 @@ import {
   Database
 } from 'lucide-react';
 import { api } from '@/lib/api';
+import { AppShell } from '@/components/AppShell';
 import { ToolCapability, ToolDefinitionDetail, AuditEventRecord, ToolEnvelope } from '@/types';
 
 export default function ToolsDeveloperPage() {
@@ -126,8 +127,8 @@ export default function ToolsDeveloperPage() {
   const selectedCap = capabilities.find(c => c.name === selectedToolName);
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <AppShell>
+      <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
         {/* Header Banner */}
         <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-surface-border/80 gap-4">
           <div>
@@ -568,6 +569,6 @@ export default function ToolsDeveloperPage() {
           </div>
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 }

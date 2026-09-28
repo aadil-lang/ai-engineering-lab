@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-reliability-platform-root"
+version = "0.1.0"
+description = "AI Application Reliability & Autonomous QA Platform Workspace Root"
+requires-python = ">=3.11"
+
+[tool.pyright]
+extraPaths = ["backend", "."]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["backend/tests"]

@@ -1,0 +1,20 @@
+Live App: https://vm-copy-question-generator.vercel.app/
+GitHub: https://github.com/aadil-lang/vm-copy-question-generator
+
+What It Does:
+Web app (Next.js 16, TypeScript, Tailwind) generating US curricula-aligned (CCSS/TEKS) math questions. Features a multi-model gateway (NaraRouter, Gemini, OpenAI), multimodal diagram analysis, parallel generation, and an automated eval layer.
+
+AI Workflows & Prompting:
+• Vibe Coding (Cursor): Scaffolded Next.js App Router, TypeScript types, and UI in hours.
+• 3-Tier Prompt System:
+  - Tier 1: Enforces strict JSON schemas ([ to ]), zero markdown, and verified solutions.
+  - Tier 2: Preserves math structure and extracts tables from diagrams.
+  - Tier 3: Enforces mandatory teacher rules (mixed numbers, simplified fractions).
+• Parallel Batching: Generated questions in concurrent batches of 2-3 (Promise.all), cutting latency by 50%.
+• Eval Layer: Built deterministic checks for option counts, duplicates, and Correct Answer exclusivity.
+
+How I Prompted the IDE:
+• Modular Building: Prompted layer by layer—first AI connectors, then logic, and finally the UI.
+• Performance: Prompted the AI: "Refactor generation to run in parallel batches rather than sequentially," halving wait times.
+• Compiler-Guided Fixes: Fed exact terminal errors to the AI to fix only affected lines without breaking working code.
+• Guardrails: Prompted automated validation checks to catch flawed outputs before user display.

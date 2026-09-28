@@ -18,6 +18,13 @@ from backend.app.prompt_lab.models import (
     PromptImprovementCandidate,
     EvaluationSnapshot,
 )
+from backend.app.prompt_lab.application_context_models import (
+    AIApplicationManifest,
+    EvaluationContext,
+    ContextBinding,
+    EvaluationContextSnapshot,
+    ContextAwarePromptCandidate,
+)
 from backend.app.prompt_lab.errors import (
     PromptNotFoundError,
     PromptVersionNotFoundError,
@@ -36,6 +43,7 @@ class PromptLabRepository:
     - Execution runs and per-case evaluation results
     - Evidence-backed diagnoses and improvement candidates
     - Cryptographically verified evaluation snapshots
+    - AI Application Manifests and frozen EvaluationContexts
     """
 
     def __init__(self, db_path: str = "backend/data/reliability_platform.db"):
@@ -48,6 +56,11 @@ class PromptLabRepository:
         self._diagnoses: Dict[str, PromptDiagnosis] = {}
         self._candidates: Dict[str, PromptImprovementCandidate] = {}
         self._snapshots: Dict[str, EvaluationSnapshot] = {}
+        self._manifests: Dict[str, AIApplicationManifest] = {}
+        self._contexts: Dict[str, EvaluationContext] = {}
+        self._bindings: Dict[str, ContextBinding] = {}
+        self._context_snapshots: Dict[str, EvaluationContextSnapshot] = {}
+        self._context_candidates: Dict[str, ContextAwarePromptCandidate] = {}
 
         self._conn = sqlite3.connect(":memory:", check_same_thread=False) if db_path == ":memory:" else None
         self._init_tables()
@@ -167,6 +180,71 @@ class PromptLabRepository:
                 content_json TEXT,
                 sha256_hash TEXT,
                 timestamp TEXT
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ai_application_manifests (
+                application_id TEXT PRIMARY KEY,
+                feature_id TEXT NOT NULL,
+                application_name TEXT NOT NULL,
+                application_version TEXT NOT NULL,
+                git_repository TEXT,
+                git_commit_sha TEXT,
+                prompt_id TEXT NOT NULL,
+                prompt_version INTEGER NOT NULL,
+                model TEXT NOT NULL,
+                model_version TEXT,
+                manifest_json TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS evaluation_contexts (
+                context_id TEXT PRIMARY KEY,
+                application_id TEXT NOT NULL,
+                feature_id TEXT NOT NULL,
+                prompt_id TEXT NOT NULL,
+                prompt_version INTEGER NOT NULL,
+                is_frozen INTEGER NOT NULL,
+                context_hash TEXT NOT NULL,
+                context_json TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS context_bindings (
+                binding_id TEXT PRIMARY KEY,
+                application_id TEXT NOT NULL,
+                feature_id TEXT NOT NULL,
+                prompt_id TEXT NOT NULL,
+                prompt_version INTEGER NOT NULL,
+                verified_at_runtime INTEGER NOT NULL,
+                epistemic_status TEXT NOT NULL,
+                binding_json TEXT NOT NULL,
+                bound_at TEXT NOT NULL
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS evaluation_context_snapshots (
+                snapshot_id TEXT PRIMARY KEY,
+                context_id TEXT NOT NULL,
+                context_hash TEXT NOT NULL,
+                application_id TEXT NOT NULL,
+                feature_id TEXT NOT NULL,
+                sha256 TEXT NOT NULL,
+                snapshot_json TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS context_aware_candidates (
+                candidate_id TEXT PRIMARY KEY,
+                application_id TEXT NOT NULL,
+                feature_id TEXT NOT NULL,
+                source_context_id TEXT NOT NULL,
+                source_prompt_version INTEGER NOT NULL,
+                candidate_json TEXT NOT NULL,
+                created_at TEXT NOT NULL
             )
         """)
         conn.commit()
@@ -715,3 +793,222 @@ class PromptLabRepository:
         )
         self._snapshots[snapshot_id] = snap
         return snap
+
+    # 7. AI Application Manifest & Context Methods
+    def save_manifest(self, manifest: AIApplicationManifest) -> AIApplicationManifest:
+        self._manifests[manifest.application_id] = manifest
+        conn = self._get_conn()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT OR REPLACE INTO ai_application_manifests (
+                application_id, feature_id, application_name, application_version,
+                git_repository, git_commit_sha, prompt_id, prompt_version,
+                model, model_version, manifest_json, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            manifest.application_id,
+            manifest.feature_id,
+            manifest.application_name,
+            manifest.application_version,
+            manifest.git_repository,
+            manifest.git_commit_sha,
+            manifest.prompt_id,
+            manifest.prompt_version,
+            manifest.model,
+            manifest.model_version,
+            manifest.model_dump_json(),
+            manifest.created_at,
+        ))
+        conn.commit()
+        return manifest
+
+    def get_manifest(self, application_id: str) -> Optional[AIApplicationManifest]:
+        if application_id in self._manifests:
+            return self._manifests[application_id]
+        conn = self._get_conn()
+        cursor = conn.cursor()
+        cursor.execute("SELECT manifest_json FROM ai_application_manifests WHERE application_id = ?", (application_id,))
+        row = cursor.fetchone()
+        if not row:
+            return None
+        m = AIApplicationManifest.model_validate_json(row[0])
+        self._manifests[application_id] = m
+        return m
+
+    def list_manifests(self) -> List[AIApplicationManifest]:
+        conn = self._get_conn()
+        cursor = conn.cursor()
+        cursor.execute("SELECT manifest_json FROM ai_application_manifests ORDER BY created_at DESC")
+        rows = cursor.fetchall()
+        result = []
+        for r in rows:
+            m = AIApplicationManifest.model_validate_json(r[0])
+            self._manifests[m.application_id] = m
+            result.append(m)
+        return result
+
+    def save_context(self, context: EvaluationContext) -> EvaluationContext:
+        self._contexts[context.context_id] = context
+        conn = self._get_conn()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT OR REPLACE INTO evaluation_contexts (
+                context_id, application_id, feature_id, prompt_id, prompt_version,
+                is_frozen, context_hash, context_json, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            context.context_id,
+            context.application_id,
+            context.feature_id,
+            context.prompt_id,
+            context.prompt_version,
+            1 if context.is_frozen else 0,
+            context.context_hash,
+            context.model_dump_json(),
+            context.created_at,
+        ))
+        conn.commit()
+        return context
+
+    def get_context(self, context_id: str) -> Optional[EvaluationContext]:
+        if context_id in self._contexts:
+            return self._contexts[context_id]
+        conn = self._get_conn()
+        cursor = conn.cursor()
+        cursor.execute("SELECT context_json FROM evaluation_contexts WHERE context_id = ?", (context_id,))
+        row = cursor.fetchone()
+        if not row:
+            return None
+        ctx = EvaluationContext.model_validate_json(row[0])
+        self._contexts[context_id] = ctx
+        return ctx
+
+    def freeze_context(self, context_id: str) -> Optional[EvaluationContext]:
+        ctx = self.get_context(context_id)
+        if not ctx:
+            return None
+        ctx.is_frozen = True
+        return self.save_context(ctx)
+
+    def list_contexts(self, application_id: Optional[str] = None) -> List[EvaluationContext]:
+        conn = self._get_conn()
+        cursor = conn.cursor()
+        if application_id:
+            cursor.execute("SELECT context_json FROM evaluation_contexts WHERE application_id = ? ORDER BY created_at DESC", (application_id,))
+        else:
+            cursor.execute("SELECT context_json FROM evaluation_contexts ORDER BY created_at DESC")
+        rows = cursor.fetchall()
+        result = []
+        for r in rows:
+            c = EvaluationContext.model_validate_json(r[0])
+            self._contexts[c.context_id] = c
+            result.append(c)
+        return result
+
+    def save_binding(self, binding: ContextBinding) -> ContextBinding:
+        key = f"{binding.application_id}:{binding.feature_id}"
+        self._bindings[key] = binding
+        conn = self._get_conn()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT OR REPLACE INTO context_bindings (
+                binding_id, application_id, feature_id, prompt_id, prompt_version,
+                verified_at_runtime, epistemic_status, binding_json, bound_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            binding.binding_id,
+            binding.application_id,
+            binding.feature_id,
+            binding.prompt_id,
+            binding.prompt_version,
+            1 if binding.verified_at_runtime else 0,
+            binding.epistemic_status.value if hasattr(binding.epistemic_status, "value") else str(binding.epistemic_status),
+            binding.model_dump_json(),
+            binding.bound_at,
+        ))
+        conn.commit()
+        return binding
+
+    def get_binding(self, application_id: str, feature_id: str) -> Optional[ContextBinding]:
+        key = f"{application_id}:{feature_id}"
+        if key in self._bindings:
+            return self._bindings[key]
+        conn = self._get_conn()
+        cursor = conn.cursor()
+        cursor.execute("SELECT binding_json FROM context_bindings WHERE application_id = ? AND feature_id = ?", (application_id, feature_id))
+        row = cursor.fetchone()
+        if not row:
+            return None
+        b = ContextBinding.model_validate_json(row[0])
+        self._bindings[key] = b
+        return b
+
+    def save_context_snapshot(self, snapshot: EvaluationContextSnapshot) -> EvaluationContextSnapshot:
+        self._context_snapshots[snapshot.snapshot_id] = snapshot
+        conn = self._get_conn()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT OR REPLACE INTO evaluation_context_snapshots (
+                snapshot_id, context_id, context_hash, application_id, feature_id,
+                sha256, snapshot_json, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            snapshot.snapshot_id,
+            snapshot.context_id,
+            snapshot.context_hash,
+            snapshot.application_id,
+            snapshot.feature_id,
+            snapshot.sha256,
+            snapshot.model_dump_json(),
+            snapshot.created_at,
+        ))
+        conn.commit()
+        return snapshot
+
+    def get_context_snapshot(self, snapshot_id: str) -> Optional[EvaluationContextSnapshot]:
+        if snapshot_id in self._context_snapshots:
+            return self._context_snapshots[snapshot_id]
+        conn = self._get_conn()
+        cursor = conn.cursor()
+        cursor.execute("SELECT snapshot_json, sha256 FROM evaluation_context_snapshots WHERE snapshot_id = ?", (snapshot_id,))
+        row = cursor.fetchone()
+        if not row:
+            return None
+        snap = EvaluationContextSnapshot.model_validate_json(row[0])
+        self._context_snapshots[snapshot_id] = snap
+        return snap
+
+    def save_context_candidate(self, candidate: ContextAwarePromptCandidate) -> ContextAwarePromptCandidate:
+        self._context_candidates[candidate.candidate_id] = candidate
+        conn = self._get_conn()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT OR REPLACE INTO context_aware_candidates (
+                candidate_id, application_id, feature_id, source_context_id,
+                source_prompt_version, candidate_json, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            candidate.candidate_id,
+            candidate.application_id,
+            candidate.feature_id,
+            candidate.source_context_id,
+            candidate.source_prompt_version,
+            candidate.model_dump_json(),
+            candidate.created_at,
+        ))
+        conn.commit()
+        return candidate
+
+    def get_context_candidate(self, candidate_id: str) -> Optional[ContextAwarePromptCandidate]:
+        if candidate_id in self._context_candidates:
+            return self._context_candidates[candidate_id]
+        conn = self._get_conn()
+        cursor = conn.cursor()
+        cursor.execute("SELECT candidate_json FROM context_aware_candidates WHERE candidate_id = ?", (candidate_id,))
+        row = cursor.fetchone()
+        if not row:
+            return None
+        c = ContextAwarePromptCandidate.model_validate_json(row[0])
+        self._context_candidates[candidate_id] = c
+        return c
+

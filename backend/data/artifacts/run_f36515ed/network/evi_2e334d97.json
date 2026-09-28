@@ -1,0 +1,647 @@
+[
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/",
+    "method": "GET",
+    "resource_type": "document",
+    "timestamp": "2026-09-28T09:01:57.221532+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/",
+    "status": 500,
+    "status_text": "Internal Server Error",
+    "ok": false,
+    "timestamp": "2026-09-28T09:01:58.117838+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/_next/static/chunks/webpack.js",
+    "method": "GET",
+    "resource_type": "script",
+    "timestamp": "2026-09-28T09:01:58.123303+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/_next/static/chunks/main.js",
+    "method": "GET",
+    "resource_type": "script",
+    "timestamp": "2026-09-28T09:01:58.123303+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/_next/static/chunks/pages/_app.js",
+    "method": "GET",
+    "resource_type": "script",
+    "timestamp": "2026-09-28T09:01:58.123303+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/_next/static/chunks/pages/_error.js",
+    "method": "GET",
+    "resource_type": "script",
+    "timestamp": "2026-09-28T09:01:58.123303+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/_next/static/development/_buildManifest.js",
+    "method": "GET",
+    "resource_type": "script",
+    "timestamp": "2026-09-28T09:01:58.123303+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/_next/static/development/_ssgManifest.js",
+    "method": "GET",
+    "resource_type": "script",
+    "timestamp": "2026-09-28T09:01:58.124017+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/_next/static/chunks/react-refresh.js",
+    "method": "GET",
+    "resource_type": "script",
+    "timestamp": "2026-09-28T09:01:58.124017+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/_next/static/chunks/webpack.js",
+    "status": 200,
+    "status_text": "OK",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.129791+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/_next/static/development/_buildManifest.js",
+    "status": 200,
+    "status_text": "OK",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.129791+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/_next/static/chunks/pages/_app.js",
+    "status": 200,
+    "status_text": "OK",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.129791+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/_next/static/development/_ssgManifest.js",
+    "status": 200,
+    "status_text": "OK",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.130791+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/_next/static/chunks/pages/_error.js",
+    "status": 200,
+    "status_text": "OK",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.130791+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/_next/static/chunks/react-refresh.js",
+    "status": 200,
+    "status_text": "OK",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.131791+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/_next/static/chunks/main.js",
+    "status": 200,
+    "status_text": "OK",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.226211+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/_next/static/development/_devMiddlewareManifest.json",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.267067+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/_next/static/development/_devMiddlewareManifest.json",
+    "status": 200,
+    "status_text": "OK",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.275476+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5C.next%5Cserver%5Cwebpack-runtime.js&methodName=__webpack_require__&arguments=&lineNumber=33&column=42",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.300368+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=%3Cunknown%3E&arguments=&lineNumber=35&column=103079",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.300368+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=eo&arguments=&lineNumber=35&column=103264",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.300368+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=%3Cunknown%3E&arguments=&lineNumber=35&column=105697",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.300368+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=Object._fromJSON&arguments=&lineNumber=35&column=106049",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.300368+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=eu&arguments=&lineNumber=35&column=103758",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.300368+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=en&arguments=&lineNumber=35&column=102826",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.301376+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=G&arguments=&lineNumber=35&column=101818",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.301376+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=aS&arguments=&lineNumber=35&column=46824",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.301376+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=av&arguments=&lineNumber=35&column=7809",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.301376+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=%3Cunknown%3E&arguments=&lineNumber=35&column=12972",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.301376+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=ab&arguments=&lineNumber=35&column=13009",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.302380+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=aS&arguments=&lineNumber=35&column=46552",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.302380+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=%3Cunknown%3E&arguments=&lineNumber=35&column=55430",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.302380+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=%3Cunknown%3E&arguments=&lineNumber=35&column=56107",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.302380+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=aI&arguments=&lineNumber=35&column=56115",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.302380+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=Timeout._onTimeout&arguments=&lineNumber=35&column=4293",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.302380+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5C.next%5Cserver%5Cwebpack-runtime.js&methodName=__webpack_require__&arguments=&lineNumber=33&column=42",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.302380+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=%3Cunknown%3E&arguments=&lineNumber=35&column=103079",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.302380+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=eo&arguments=&lineNumber=35&column=103264",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.302380+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=%3Cunknown%3E&arguments=&lineNumber=35&column=105697",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.302380+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=Object._fromJSON&arguments=&lineNumber=35&column=106049",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.303376+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=eu&arguments=&lineNumber=35&column=103758",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.303376+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=en&arguments=&lineNumber=35&column=102826",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.303376+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=G&arguments=&lineNumber=35&column=101818",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.303376+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=aS&arguments=&lineNumber=35&column=46824",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.303376+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=av&arguments=&lineNumber=35&column=7809",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.303376+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=%3Cunknown%3E&arguments=&lineNumber=35&column=12972",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.303376+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=ab&arguments=&lineNumber=35&column=13009",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.303376+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=aS&arguments=&lineNumber=35&column=46552",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.306376+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=%3Cunknown%3E&arguments=&lineNumber=35&column=55430",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.306376+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=%3Cunknown%3E&arguments=&lineNumber=35&column=56107",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.307373+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=aI&arguments=&lineNumber=35&column=56115",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.307373+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=Timeout._onTimeout&arguments=&lineNumber=35&column=4293",
+    "method": "GET",
+    "resource_type": "fetch",
+    "timestamp": "2026-09-28T09:01:58.307373+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5C.next%5Cserver%5Cwebpack-runtime.js&methodName=__webpack_require__&arguments=&lineNumber=33&column=42",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.307373+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=%3Cunknown%3E&arguments=&lineNumber=35&column=103079",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.307373+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=eo&arguments=&lineNumber=35&column=103264",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.307373+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=eu&arguments=&lineNumber=35&column=103758",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.307373+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=Object._fromJSON&arguments=&lineNumber=35&column=106049",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.308374+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=%3Cunknown%3E&arguments=&lineNumber=35&column=105697",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.308374+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=en&arguments=&lineNumber=35&column=102826",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.309189+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=G&arguments=&lineNumber=35&column=101818",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.310200+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=aS&arguments=&lineNumber=35&column=46824",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.318211+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=av&arguments=&lineNumber=35&column=7809",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.318211+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=%3Cunknown%3E&arguments=&lineNumber=35&column=12972",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.318211+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=ab&arguments=&lineNumber=35&column=13009",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.318211+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=aS&arguments=&lineNumber=35&column=46552",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.318211+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5C.next%5Cserver%5Cwebpack-runtime.js&methodName=__webpack_require__&arguments=&lineNumber=33&column=42",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.318211+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=aI&arguments=&lineNumber=35&column=56115",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.318211+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=%3Cunknown%3E&arguments=&lineNumber=35&column=55430",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.320212+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=Timeout._onTimeout&arguments=&lineNumber=35&column=4293",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.320212+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=%3Cunknown%3E&arguments=&lineNumber=35&column=56107",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.320212+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=%3Cunknown%3E&arguments=&lineNumber=35&column=103079",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.323211+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=eu&arguments=&lineNumber=35&column=103758",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.325211+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=eo&arguments=&lineNumber=35&column=103264",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.325211+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=Object._fromJSON&arguments=&lineNumber=35&column=106049",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.327753+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=%3Cunknown%3E&arguments=&lineNumber=35&column=105697",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.328755+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=en&arguments=&lineNumber=35&column=102826",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.334756+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=G&arguments=&lineNumber=35&column=101818",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.334756+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=aS&arguments=&lineNumber=35&column=46824",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.346009+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=av&arguments=&lineNumber=35&column=7809",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.346009+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=%3Cunknown%3E&arguments=&lineNumber=35&column=12972",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.348016+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=ab&arguments=&lineNumber=35&column=13009",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.348016+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=aS&arguments=&lineNumber=35&column=46552",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.350346+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=aI&arguments=&lineNumber=35&column=56115",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.353747+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=Timeout._onTimeout&arguments=&lineNumber=35&column=4293",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.353747+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=%3Cunknown%3E&arguments=&lineNumber=35&column=56107",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.354748+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/__nextjs_original-stack-frame?isServer=true&isEdgeServer=false&errorMessage=TypeError%3A+__webpack_modules__%5BmoduleId%5D+is+not+a+function&file=file%3A%2F%2FC%3A%5CUsers%5CHP%5C.gemini%5Cantigravity-ide%5Cscratch%5CNew+project%5Cfrontend%5Cnode_modules%5Cnext%5Cdist%5Ccompiled%5Cnext-server%5Capp-page.runtime.dev.js&methodName=%3Cunknown%3E&arguments=&lineNumber=35&column=55430",
+    "status": 204,
+    "status_text": "No Content",
+    "ok": true,
+    "timestamp": "2026-09-28T09:01:58.374504+00:00"
+  }
+]

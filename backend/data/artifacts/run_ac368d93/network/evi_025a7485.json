@@ -1,0 +1,68 @@
+[
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/",
+    "method": "GET",
+    "resource_type": "document",
+    "timestamp": "2026-09-28T07:37:46.933427+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/",
+    "status": 200,
+    "status_text": "OK",
+    "ok": true,
+    "timestamp": "2026-09-28T07:37:50.268388+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/_next/static/css/app/layout.css?v=1790581070067",
+    "method": "GET",
+    "resource_type": "stylesheet",
+    "timestamp": "2026-09-28T07:37:50.385605+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/_next/static/chunks/webpack.js?v=1790581070067",
+    "method": "GET",
+    "resource_type": "script",
+    "timestamp": "2026-09-28T07:37:50.388113+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/_next/static/chunks/main-app.js?v=1790581070067",
+    "method": "GET",
+    "resource_type": "script",
+    "timestamp": "2026-09-28T07:37:50.389134+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/_next/static/chunks/app-pages-internals.js",
+    "method": "GET",
+    "resource_type": "script",
+    "timestamp": "2026-09-28T07:37:50.390095+00:00"
+  },
+  {
+    "event": "request",
+    "url": "http://127.0.0.1:3000/_next/static/chunks/app/page.js",
+    "method": "GET",
+    "resource_type": "script",
+    "timestamp": "2026-09-28T07:37:50.390095+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/_next/static/css/app/layout.css?v=1790581070067",
+    "status": 200,
+    "status_text": "OK",
+    "ok": true,
+    "timestamp": "2026-09-28T07:37:50.452129+00:00"
+  },
+  {
+    "event": "response",
+    "url": "http://127.0.0.1:3000/_next/static/chunks/webpack.js?v=1790581070067",
+    "status": 200,
+    "status_text": "OK",
+    "ok": true,
+    "timestamp": "2026-09-28T07:37:50.463710+00:00"
+  }
+]

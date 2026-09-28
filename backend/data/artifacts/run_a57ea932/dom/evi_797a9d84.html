@@ -1,0 +1,35 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>VM Copy Question Generator</title></head>
+<body>
+<div id="app-root">
+  <h1>Question Generator — Base Generate</h1>
+  <form id="qg-form">
+    <label for="grade-select">Grade</label>
+    <select id="grade-select" name="grade">
+      <option value="">Select Grade</option>
+      <option value="3">Grade 3</option>
+      <option value="4">Grade 4</option>
+      <option value="5">Grade 5</option>
+    </select>
+
+    <label for="domain-input">Domain</label>
+    <input id="domain-input" type="text" name="domain" placeholder="e.g. Number &amp; Operations - Fractions">
+
+    <label for="skill-input">Skill</label>
+    <textarea id="skill-input" name="skill" placeholder="Describe the target skill…"></textarea>
+
+    <button type="submit" class="homepage-btn">Generate Question</button>
+  </form>
+
+  <div id="question-output" style="margin-top:1rem;">
+    <h2>Generated Question</h2>
+    <p id="question-text">What is 3/4 + 1/8?</p>
+    <ul id="options-list">
+      <li data-option="A">5/8</li>
+      <li data-option="B">7/8</li>
+      <li data-option="C" data-ca="true">7/8</li>
+      <li data-option="D">1</li>
+    </ul>
+  </div>
+</div>
+
+</body></html>

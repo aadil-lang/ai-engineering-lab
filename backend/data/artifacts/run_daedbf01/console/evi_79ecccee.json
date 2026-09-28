@@ -1,0 +1,31 @@
+[
+  {
+    "type": "error",
+    "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+    "location": {
+      "url": "http://127.0.0.1:3000/",
+      "line": 0,
+      "column": 0,
+      "lineNumber": 0,
+      "columnNumber": 0
+    },
+    "timestamp": "2026-09-28T11:14:01.458114+00:00"
+  },
+  {
+    "type": "error",
+    "text": "Cannot find module './72.js'\nRequire stack:\n- C:\\Users\\HP\\.gemini\\antigravity-ide\\scratch\\New project\\frontend\\.next\\server\\webpack-runtime.js\n- C:\\Users\\HP\\.gemini\\antigravity-ide\\scratch\\New project\\frontend\\.next\\server\\pages\\_document.js\n- C:\\Users\\HP\\.gemini\\antigravity-ide\\scratch\\New project\\frontend\\node_modules\\next\\dist\\server\\require.js\n- C:\\Users\\HP\\.gemini\\antigravity-ide\\scratch\\New project\\frontend\\node_modules\\next\\dist\\server\\load-components.js\n- C:\\Users\\HP\\.gemini\\antigravity-ide\\scratch\\New project\\frontend\\node_modules\\next\\dist\\build\\utils.js\n- C:\\Users\\HP\\.gemini\\antigravity-ide\\scratch\\New project\\frontend\\node_modules\\next\\dist\\server\\dev\\hot-middleware.js\n- C:\\Users\\HP\\.gemini\\antigravity-ide\\scratch\\New project\\frontend\\node_modules\\next\\dist\\server\\dev\\hot-reloader-webpack.js\n- C:\\Users\\HP\\.gemini\\antigravity-ide\\scratch\\New project\\frontend\\node_modules\\next\\dist\\server\\lib\\router-utils\\setup-dev-bundler.js\n- C:\\Users\\HP\\.gemini\\antigravity-ide\\scratch\\New project\\frontend\\node_modules\\next\\dist\\server\\lib\\router-server.js\n- C:\\Users\\HP\\.gemini\\antigravity-ide\\scratch\\New project\\frontend\\node_modules\\next\\dist\\server\\lib\\start-server.js",
+    "timestamp": "2026-09-28T11:14:01.694882+00:00"
+  },
+  {
+    "type": "log",
+    "text": "[HMR] connected",
+    "location": {
+      "url": "webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js",
+      "line": 45,
+      "column": 27,
+      "lineNumber": 45,
+      "columnNumber": 27
+    },
+    "timestamp": "2026-09-28T11:14:01.726273+00:00"
+  }
+]

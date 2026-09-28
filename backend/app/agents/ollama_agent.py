@@ -85,7 +85,9 @@ class OllamaReasoner:
         history_summary: str,
         step_number: int,
         max_steps: int,
-        last_error: str | None = None
+        last_error: str | None = None,
+        strategy_guidance: str | None = None,
+        memory_context: str | None = None,
     ) -> AgentDecision:
         """Query Ollama with the current observation and history to generate the next action."""
         
@@ -94,6 +96,12 @@ class OllamaReasoner:
             f"=== GOAL: {goal} ===",
             f"=== STEP: {step_number} of {max_steps} ===",
         ]
+
+        if strategy_guidance:
+            user_prompt_lines.append(f"\n{strategy_guidance}")
+
+        if memory_context:
+            user_prompt_lines.append(f"\n{memory_context}")
         
         if history_summary:
             user_prompt_lines.append("\n=== ACTION HISTORY ===")

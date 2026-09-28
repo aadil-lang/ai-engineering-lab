@@ -24,6 +24,10 @@ class DOMObservation(BaseModel):
     text_summary: str = ""
     alerts: list[str] = []
 
+    @property
+    def interactive_elements(self) -> list[ExtractedElement]:
+        return self.elements
+
     def get_element_by_index(self, index: int) -> ExtractedElement | None:
         for el in self.elements:
             if el.index == index:
